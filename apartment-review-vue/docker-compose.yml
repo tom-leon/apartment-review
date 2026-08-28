@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:18-alpine
+    container_name: apartment-review-db
+    environment:
+      POSTGRES_USER: tom
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: apartment_review
+    ports:
+      - "5532:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tom"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ../apartment-review-fastapi
+    container_name: apartment-review-backend
+    ports:
+      - "8100:8000"
+    environment:
+      DATABASE_URL: postgresql://tom:123@db:5432/apartment_review
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../apartment-review-fastapi:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend
+  frontend:
+    build:
+      context: .
+    container_name: apartment-review-frontend
+    ports:
+      - "5273:5173"
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:8100
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
