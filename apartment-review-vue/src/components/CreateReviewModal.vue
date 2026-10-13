@@ -32,22 +32,22 @@
 
       <div class="flex flex-column gap-2">
         <label for="landlordRating">Landlord Rating</label>
-        <Rating v-model="landlordRating" :cancel="false" :stars="10" />
+        <Rating v-model="landlordRating" :cancel="false" :stars="5" off-icon="pi pi-star" />
       </div>
 
       <div class="flex flex-column gap-2">
         <label for="locationRating">Location Rating</label>
-        <Rating v-model="locationRating" :cancel="false" :stars="10" />
+        <Rating v-model="locationRating" :cancel="false" :stars="5" off-icon="pi pi-star" />
       </div>
 
       <div class="flex flex-column gap-2">
         <label for="conditionRating">Condition Rating</label>
-        <Rating v-model="conditionRating" :cancel="false" :stars="10" />
+        <Rating v-model="conditionRating" :cancel="false" :stars="5" off-icon="pi pi-star" />
       </div>
 
       <div class="flex flex-column gap-2">
         <label for="quietnessRating">Quietness Rating</label>
-        <Rating v-model="quietnessRating" :cancel="false" :stars="10" />
+        <Rating v-model="quietnessRating" :cancel="false" :stars="5" off-icon="pi pi-star" />
       </div>
 
       <div class="flex flex-column gap-2">
@@ -208,5 +208,27 @@ async function searchAddress(event: { query: string }) {
 
 label {
   font-weight: 600;
+}
+
+/* Selected stars are solid yellow; hovering star 3 fills stars 1-3 solid yellow, 4-5 stay outlines. */
+:deep(.p-rating) {
+  --p-rating-icon-active-color: #fbbf24;
+  --p-rating-icon-hover-color: #fbbf24;
+}
+
+:deep(.p-rating:hover .p-rating-icon) {
+  color: #fbbf24;
+}
+
+:deep(.p-rating:hover .pi-star::before) {
+  content: "\e936";
+}
+
+:deep(.p-rating-option:hover ~ .p-rating-option .p-rating-icon) {
+  color: var(--p-rating-icon-color);
+}
+
+:deep(.p-rating-option:hover ~ .p-rating-option .pi-star::before) {
+  content: "\e937";
 }
 </style>
