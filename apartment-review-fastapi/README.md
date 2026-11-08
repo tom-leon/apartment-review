@@ -19,6 +19,10 @@ folder's `DOCKER_GUIDE.md` for the local port mapping (the backend lands on **lo
 Locally the app reads `DATABASE_URL` from the environment, falling back to
 `postgresql://tom:123@localhost:5432/apartment_review` (`database.py`) if it isn't set.
 
+`CORS_ORIGINS` (comma-separated browser origins allowed to call the API) works the same way,
+defaulting to the Vite dev server `http://localhost:5173` and the Docker-mapped
+`http://localhost:5273` (`config.py`). In production Pulumi sets it to the Cloudflare Pages domain.
+
 ## Production stack
 
 | Layer | Service | Plan |
@@ -49,9 +53,6 @@ deploy it — the Pulumi stack points DigitalOcean at this folder of `tom-leon/a
 
 ### Known gaps before this is safe to point real users at
 
-- **No CORS middleware.** The production frontend and backend are on different origins
-  (`*.pages.dev` vs `*.ondigitalocean.app`), and `main.py` doesn't set up `CORSMiddleware` yet —
-  cross-origin requests from the deployed frontend will fail until it's added.
 - **No auth on any endpoint.** `POST /apartment` and `POST /user` are open to the internet.
 - **Passwords are stored in plaintext.** `models.py`'s `User.password` is written and returned
   as-is; needs hashing (e.g. `passlib[bcrypt]`) before real accounts exist.

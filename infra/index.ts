@@ -62,6 +62,12 @@ const neonDatabase = new neon.Database(
 // Full connection string, kept secret end-to-end.
 const databaseUrl = pulumi.secret(neonProject.connectionUri);
 
+// Cloudflare Pages serves production at https://<project name>.pages.dev. Deriving the
+// origin from the name (instead of reading it off the Pages resource) avoids a cycle:
+// the Pages build needs the backend's URL, and the backend needs the Pages origin.
+const pagesProjectName = "apartment-review";
+const frontendOrigin = `https://${pagesProjectName}.pages.dev`;
+
 // =================================================================================
 // 2. DigitalOcean App Platform — FastAPI backend, built from the repo's Dockerfile
 // =================================================================================
@@ -89,6 +95,10 @@ const backendApp = new digitalocean.App("apartment-review-backend", {
             value: databaseUrl,
             type: "SECRET",
           },
+          {
+            key: "CORS_ORIGINS",
+            value: frontendOrigin,
+          },
         ],
         healthCheck: {
           httpPath: "/",
@@ -106,7 +116,7 @@ const backendApp = new digitalocean.App("apartment-review-backend", {
 
 const frontendProject = new cloudflare.PagesProject("apartment-review-frontend", {
   accountId: cloudflareAccountId,
-  name: "apartment-review",
+  name: pagesProjectName,
   productionBranch: branch,
   buildConfig: {
     buildCommand: "npm run build",

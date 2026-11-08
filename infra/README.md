@@ -73,16 +73,14 @@ pulumi stack output frontendUrl                              # Cloudflare Pages 
 pulumi stack output databaseConnectionString --show-secrets  # Neon connection string
 ```
 
-## Two things this program does NOT fix — do these before pointing real users at it
+## How the two apps find each other
 
-1. **CORS.** The frontend and backend end up on different origins (`*.pages.dev` /
-   `*.ondigitalocean.app`), and `main.py` has no `CORSMiddleware`. Add one, scoped to the actual
-   Pages domain — not `allow_origins=["*"]`, since these endpoints will eventually carry
-   credentials.
-2. **The frontend doesn't read `VITE_API_URL` yet.** This program sets it as a Cloudflare Pages
-   build-time env var, but `src/stores/apartment.ts` currently calls a hardcoded relative
-   `/api/apartments`. Change it to read `import.meta.env.VITE_API_URL`, or the env var this
-   program wires up does nothing.
+- **`VITE_API_URL`** is set as a Cloudflare Pages build-time env var from the DigitalOcean
+  app's live URL; `src/stores/apartment.ts` reads it via `import.meta.env.VITE_API_URL`.
+- **`CORS_ORIGINS`** is set on the DigitalOcean app to `https://apartment-review.pages.dev`,
+  derived from the Pages project name rather than read off the Pages resource (which would be
+  a cycle: the Pages build needs the backend URL, the backend needs the Pages origin). Preview
+  deployments (`<hash>.apartment-review.pages.dev`) are not allowed; add them if you need them.
 
 ## Cost at this sizing
 

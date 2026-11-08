@@ -1,12 +1,22 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated
 from models import User, Apartment
 from schemas import UserCreate, UserResponse, ApartmentCreate, ApartmentResponse
+from config import cors_origins
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
 from sqlmodel import SQLModel
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")

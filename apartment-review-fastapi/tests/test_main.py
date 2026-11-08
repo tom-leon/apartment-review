@@ -49,3 +49,30 @@ def test_create_apartment_rejects_missing_city(client):
     )
 
     assert response.status_code == 422
+
+
+def test_cors_preflight_allows_the_local_frontend_origin(client):
+    response = client.options(
+        "/apartment",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert response.headers["access-control-allow-credentials"] == "true"
+
+
+def test_cors_preflight_rejects_an_unknown_origin(client):
+    response = client.options(
+        "/apartment",
+        headers={
+            "Origin": "https://evil.example",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
