@@ -5,7 +5,7 @@ Run everything from the **client (frontend) folder** with a single command!
 ## Project Structure
 
 ```
-/home/tom/apartment-review/
+apartment-review/
 ├── apartment-review-fastapi/      # Backend (FastAPI)
 │   ├── Dockerfile
 │   ├── .dockerignore
@@ -27,7 +27,7 @@ Run everything from the **client (frontend) folder** with a single command!
 ### 1. Navigate to the frontend folder
 
 ```bash
-cd /home/tom/apartment-review/apartment-review-vue
+cd apartment-review-vue
 ```
 
 ### 2. Start all services

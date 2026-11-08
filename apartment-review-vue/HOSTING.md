@@ -2,14 +2,14 @@
 
 Research date: **2026-08-04**. Prices are list prices at that date and drift — re-check before committing.
 
-This covers both halves of the app: this repo (`apartment-review-vue`) and the API in
+This covers both halves of the app: this folder (`apartment-review-vue`) and the API in
 `apartment-review-fastapi`.
 
 ## What we're actually deploying
 
 Knowing the shape of the app narrows the hosting options a lot:
 
-**Frontend (this repo)** — Vue 3 + Vite + TypeScript SPA. PrimeVue, Pinia, `vue-router` in
+**Frontend (this folder)** — Vue 3 + Vite + TypeScript SPA. PrimeVue, Pinia, `vue-router` in
 `createWebHistory` mode. There is no SSR and no server-side runtime: `npm run build` emits a
 folder of static files. That means it can go on a pure static/CDN host, which is the cheapest
 category of hosting there is, and in practice free.
@@ -85,7 +85,7 @@ force-pauses, and moving to pay-as-you-go later is a pricing change rather than 
 ## Recommended combinations
 
 **Option 1 — cheapest managed setup (~$5/mo, recommended to launch):** Cloudflare Pages (free) for
-this repo, Railway Hobby ($5/mo) for the API, Neon free tier for Postgres. Configure Cloudflare to
+this folder, Railway Hobby ($5/mo) for the API, Neon free tier for Postgres. Configure Cloudflare to
 proxy `/api/*` to the Railway URL so both live on one origin. Total roughly $5/mo plus ~$10/yr for
 a domain, and almost nothing to operate.
 
