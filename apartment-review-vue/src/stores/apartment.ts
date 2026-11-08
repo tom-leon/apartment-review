@@ -1,6 +1,11 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 
+/** Prefix a path with the API base URL set at build time (see env.d.ts). */
+export function apiUrl(path: string): string {
+  return `${import.meta.env.VITE_API_URL ?? ""}${path}`;
+}
+
 export interface Apartment {
   uid: string;
   address: string;
@@ -15,8 +20,8 @@ export const useApartmentStore = defineStore("apartment", () => {
     loading.value = true;
     error.value = null;
     try {
-      // TODO: Replace with actual API endpoint
-      const response = await fetch("/api/apartments");
+      // TODO: the backend has no list route yet; see the plan for the rename
+      const response = await fetch(apiUrl("/api/apartments"));
       if (!response.ok) throw new Error("Failed to fetch apartments");
       apartments.value = await response.json();
     } catch (e) {
@@ -30,8 +35,8 @@ export const useApartmentStore = defineStore("apartment", () => {
     loading.value = true;
     error.value = null;
     try {
-      // TODO: Replace with actual API endpoint
-      const response = await fetch("/api/apartments", {
+      // TODO: the backend route is POST /apartment; see the plan for the rename
+      const response = await fetch(apiUrl("/api/apartments"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address }),

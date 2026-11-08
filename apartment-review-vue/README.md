@@ -16,10 +16,10 @@ All three production services are defined as code in **`../infra/`** — a Pulum
 program at the repo root that provisions the frontend, the backend and the database. See `infra/README.md` for the one-time GitHub authorizations, API tokens/secrets to
 configure, and `pulumi up` / `pulumi destroy`.
 
-**Before real users hit this:** the frontend calls a hardcoded relative `/api/apartments`
-(`src/stores/apartment.ts`) rather than reading the `VITE_API_URL` the Pulumi program sets, and
-the backend has no CORS middleware yet — cross-origin requests from the deployed frontend will
-fail until both are fixed.
+**API base URL:** `src/stores/apartment.ts` builds every request from `VITE_API_URL`
+(`.env.development` for `npm run dev`, Docker Compose and the Pulumi program set it for their
+environments). Still missing before real users: the store calls `GET`/`POST /api/apartments`, and
+the backend has no such routes yet.
 
 ## Local stack (Docker Compose)
 
