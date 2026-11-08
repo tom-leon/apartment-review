@@ -1,0 +1,25 @@
+name: frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apartment-review-vue/**"
+      - ".github/workflows/frontend.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apartment-review-vue
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: apartment-review-vue/.nvmrc
+          cache: npm
+          cache-dependency-path: apartment-review-vue/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
