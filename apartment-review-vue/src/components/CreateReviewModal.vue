@@ -2,68 +2,73 @@
   <Dialog
     v-model:visible="isVisible"
     modal
-    header="Add Your Contribution"
-    :style="{ width: '50rem' }"
-    :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+    header="Review an apartment"
+    :style="{ width: '36rem' }"
+    :breakpoints="{ '640px': '94vw' }"
   >
-    <div class="flex flex-column gap-3">
-      <div class="flex flex-column gap-2">
-        <label for="address">Apartment Address</label>
+    <div class="report">
+      <div class="field">
+        <label for="address">Address</label>
         <AutoComplete
           id="address"
           v-model="address"
           :suggestions="filteredAddresses"
           @complete="searchAddress"
-          placeholder="Enter apartment address"
+          placeholder="Start typing a street address"
           dropdown
         />
       </div>
 
-      <div class="flex flex-column gap-2">
-        <label for="unitNumber"
-          >Unit Number (Optional - leave blank to stay anonymous)</label
-        >
+      <div class="field">
+        <label for="unitNumber">Unit number (optional)</label>
         <InputText
           id="unitNumber"
           v-model="unitNumber"
-          placeholder="e.g., 12A, 305"
+          placeholder="e.g. 12A"
+          aria-describedby="unitNumber-help"
         />
+        <Message id="unitNumber-help" size="small" severity="secondary" variant="simple">
+          Leave blank to stay anonymous.
+        </Message>
       </div>
 
-      <div class="flex flex-column gap-2">
-        <label for="landlordRating">Landlord Rating</label>
-        <Rating v-model="landlordRating" :cancel="false" :stars="5" off-icon="pi pi-star" />
-      </div>
+      <Fieldset legend="Ratings">
+        <div class="rating-row">
+          <label for="landlordRating">Landlord</label>
+          <Slider v-model="landlordRating" :min="0" :max="100" :step="1" />
+          <span>{{ landlordRating }}</span>
+        </div>
+        <div class="rating-row">
+          <label for="locationRating">Location</label>
+          <Slider v-model="locationRating" :min="0" :max="100" :step="1" />
+          <span>{{ locationRating }}</span>
+        </div>
+        <div class="rating-row">
+          <label for="conditionRating">Condition</label>
+          <Slider v-model="conditionRating" :min="0" :max="100" :step="1" />
+          <span>{{ conditionRating }}</span>
+        </div>
+        <div class="rating-row">
+          <label for="quietnessRating">Quietness</label>
+          <Slider v-model="quietnessRating" :min="0" :max="100" :step="1" />
+          <span>{{ quietnessRating }}</span>
+        </div>
+      </Fieldset>
 
-      <div class="flex flex-column gap-2">
-        <label for="locationRating">Location Rating</label>
-        <Rating v-model="locationRating" :cancel="false" :stars="5" off-icon="pi pi-star" />
-      </div>
-
-      <div class="flex flex-column gap-2">
-        <label for="conditionRating">Condition Rating</label>
-        <Rating v-model="conditionRating" :cancel="false" :stars="5" off-icon="pi pi-star" />
-      </div>
-
-      <div class="flex flex-column gap-2">
-        <label for="quietnessRating">Quietness Rating</label>
-        <Rating v-model="quietnessRating" :cancel="false" :stars="5" off-icon="pi pi-star" />
-      </div>
-
-      <div class="flex flex-column gap-2">
+      <div class="field">
         <label for="review">Review</label>
         <Textarea
           id="review"
           v-model="reviewText"
           rows="5"
-          placeholder="Write your review..."
+          placeholder="What should the next tenant know?"
         />
       </div>
     </div>
 
     <template #footer>
       <Button label="Cancel" severity="secondary" @click="closeModal" />
-      <Button label="Submit" @click="submitReview" />
+      <Button label="Post review" @click="submitReview" />
     </template>
   </Dialog>
 </template>
@@ -71,11 +76,13 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import Dialog from "primevue/dialog";
+import Fieldset from "primevue/fieldset";
 import AutoComplete from "primevue/autocomplete";
 import InputText from "primevue/inputtext";
 import Textarea from "primevue/textarea";
-import Rating from "primevue/rating";
+import Slider from "primevue/slider";
 import Button from "primevue/button";
+import Message from "primevue/message";
 import { useApartmentStore } from "@/stores/apartment";
 import { storeToRefs } from "pinia";
 
@@ -97,10 +104,10 @@ const { apartments } = storeToRefs(apartmentStore);
 const isVisible = ref(props.visible);
 const address = ref("");
 const unitNumber = ref("");
-const landlordRating = ref(0);
-const locationRating = ref(0);
-const conditionRating = ref(0);
-const quietnessRating = ref(0);
+const landlordRating = ref(50);
+const locationRating = ref(50);
+const conditionRating = ref(50);
+const quietnessRating = ref(50);
 const reviewText = ref("");
 const filteredAddresses = ref<string[]>([]);
 
@@ -142,10 +149,10 @@ function submitReview() {
 function resetForm() {
   address.value = "";
   unitNumber.value = "";
-  landlordRating.value = 0;
-  locationRating.value = 0;
-  conditionRating.value = 0;
-  quietnessRating.value = 0;
+  landlordRating.value = 50;
+  locationRating.value = 50;
+  conditionRating.value = 50;
+  quietnessRating.value = 50;
   reviewText.value = "";
   filteredAddresses.value = [];
 }
@@ -190,45 +197,27 @@ async function searchAddress(event: { query: string }) {
 </script>
 
 <style scoped>
-.flex {
+.report {
   display: flex;
-}
-
-.flex-column {
   flex-direction: column;
+  gap: 1.25rem;
 }
 
-.gap-2 {
+.field {
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
-}
-
-.gap-3 {
-  gap: 0.75rem;
 }
 
 label {
   font-weight: 600;
 }
 
-/* Selected stars are solid yellow; hovering star 3 fills stars 1-3 solid yellow, 4-5 stay outlines. */
-:deep(.p-rating) {
-  --p-rating-icon-active-color: #fbbf24;
-  --p-rating-icon-hover-color: #fbbf24;
-}
-
-:deep(.p-rating:hover .p-rating-icon) {
-  color: #fbbf24;
-}
-
-:deep(.p-rating:hover .pi-star::before) {
-  content: "\e936";
-}
-
-:deep(.p-rating-option:hover ~ .p-rating-option .p-rating-icon) {
-  color: var(--p-rating-icon-color);
-}
-
-:deep(.p-rating-option:hover ~ .p-rating-option .pi-star::before) {
-  content: "\e937";
+.rating-row {
+  display: grid;
+  grid-template-columns: 8rem 1fr 2rem;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.375rem 0;
 }
 </style>
