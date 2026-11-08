@@ -1,10 +1,8 @@
 config:
   cloudflareAccountId: "REPLACE_WITH_YOUR_CLOUDFLARE_ACCOUNT_ID"
   neonOrgId: "REPLACE_WITH_YOUR_NEON_ORG_ID"
-  githubOwner: "yilin-chao"
-  backendRepo: "apartment-review-fastapi"
-  frontendRepo: "apartment-review-vue"
-  backendBranch: "main"
-  frontendBranch: "main"
+  githubOwner: "tom-leon"
+  githubRepo: "apartment-review"
+  branch: "main"
   doRegion: "sgp"
   doInstanceSize: "apps-s-1vcpu-0.5gb"

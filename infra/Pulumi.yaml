@@ -1,0 +1,9 @@
+name: apartment-review-infra
+runtime: nodejs
+description: Cloudflare Pages (frontend) + DigitalOcean App Platform (backend) + Neon (Postgres) for apartment-review
+packages:
+  neon:
+    source: terraform-provider
+    version: 0.13.0
+    parameters:
+      - kislerdm/neon

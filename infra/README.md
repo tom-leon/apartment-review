@@ -9,7 +9,7 @@ is wrapped in `pulumi.secret()` and passed to the DigitalOcean app as `type: "SE
 ([index.ts](index.ts)), so the DB URL is encrypted in Pulumi state and injected straight into the
 DO app — nobody hand-types it into the DO dashboard.
 
-Lives here, in the frontend repo (since it's TypeScript), but provisions both repos:
+Lives at the repo root and provisions both apps:
 
 - **Neon** — managed Postgres (`apartment-review` project + `apartment_review` database)
 - **DigitalOcean App Platform** — the FastAPI backend, built straight from `apartment-review-fastapi`'s `Dockerfile`
@@ -23,7 +23,7 @@ with no Terraform-bridge hacks — except Neon, which ships as a dynamically-gen
 
 1. **DigitalOcean ↔ GitHub.** DO's App Platform needs its GitHub App authorized on your account
    before it will let Pulumi deploy from a repo. In the DO control panel: Apps → Create App →
-   GitHub → authorize, and grant it access to `apartment-review-fastapi`. You can cancel out of
+   GitHub → authorize, and grant it access to `apartment-review`. You can cancel out of
    the wizard once it's authorized — Pulumi will do the actual app creation.
 2. **Cloudflare ↔ GitHub.** Same idea: Pages → Create a project → Connect to Git, authorize once,
    then cancel — Pulumi will create the actual project.

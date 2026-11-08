@@ -80,7 +80,7 @@ Every command CI runs, plus the ones you run by hand. Learn these; they are the 
 | `gh variable set NAME --body "value"` | store a non-secret variable for Actions |
 | `gh pr merge <n> --squash --delete-branch` | merge a PR (Dependabot's) as one commit |
 
-## Infrastructure (run from `apartment-review-vue/infra/`)
+## Infrastructure (run from `infra/`)
 
 | Command | What it does |
 |---|---|

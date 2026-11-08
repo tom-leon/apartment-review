@@ -1,8 +1,0 @@
-name: apartment-review-infra
-runtime: nodejs
-description: Cloudflare Pages (frontend) + DigitalOcean App Platform (backend) + Neon (Postgres) for apartment-review
-config:
-  digitalocean:token:
-    description: DigitalOcean personal access token
-  cloudflare:apiToken:
-    description: Cloudflare API token (Pages:Edit, Account Settings:Read)

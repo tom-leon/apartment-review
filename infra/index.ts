@@ -10,11 +10,9 @@ import * as neon from "@pulumi/neon";
 const cfg = new pulumi.Config();
 
 // --- repo / branch locations -------------------------------------------------
-const githubOwner = cfg.get("githubOwner") ?? "yilin-chao";
-const backendRepo = cfg.get("backendRepo") ?? "apartment-review-fastapi";
-const frontendRepo = cfg.get("frontendRepo") ?? "apartment-review-vue";
-const backendBranch = cfg.get("backendBranch") ?? "main";
-const frontendBranch = cfg.get("frontendBranch") ?? "main";
+const githubOwner = cfg.get("githubOwner") ?? "tom-leon";
+const githubRepo = cfg.get("githubRepo") ?? "apartment-review";
+const branch = cfg.get("branch") ?? "main";
 
 // --- sizing / region -----------------------------------------------------------
 // apps-s-1vcpu-0.5gb = $5/mo (cheapest real DO App Platform tier, Aug 2026 pricing).
@@ -76,11 +74,12 @@ const backendApp = new digitalocean.App("apartment-review-backend", {
       {
         name: "api",
         github: {
-          repo: `${githubOwner}/${backendRepo}`,
-          branch: backendBranch,
-          deployOnPush: true,
+          repo: `${githubOwner}/${githubRepo}`,
+          branch,
+          deployOnPush: false,
         },
-        dockerfilePath: "Dockerfile",
+        sourceDir: "apartment-review-fastapi",
+        dockerfilePath: "apartment-review-fastapi/Dockerfile",
         httpPort: 8000,
         instanceCount: 1,
         instanceSizeSlug: doInstanceSize,
@@ -108,18 +107,18 @@ const backendApp = new digitalocean.App("apartment-review-backend", {
 const frontendProject = new cloudflare.PagesProject("apartment-review-frontend", {
   accountId: cloudflareAccountId,
   name: "apartment-review",
-  productionBranch: frontendBranch,
+  productionBranch: branch,
   buildConfig: {
     buildCommand: "npm run build",
     destinationDir: "dist",
-    rootDir: "",
+    rootDir: "apartment-review-vue",
   },
   source: {
     type: "github",
     config: {
       owner: githubOwner,
-      repoName: frontendRepo,
-      productionBranch: frontendBranch,
+      repoName: githubRepo,
+      productionBranch: branch,
       deploymentsEnabled: true,
     },
   },
@@ -137,5 +136,6 @@ const frontendProject = new cloudflare.PagesProject("apartment-review-frontend",
 // =================================================================================
 
 export const backendUrl = backendApp.liveUrl;
+export const backendAppId = backendApp.id;
 export const frontendUrl = frontendProject.domains;
 export const databaseConnectionString = databaseUrl;

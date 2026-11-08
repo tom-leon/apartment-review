@@ -1,21 +1,19 @@
-# apartment-review-frontend
-
-This template should help get you started developing with Vue 3 in Vite.
+# apartment-review-vue
 
 ## Production stack
 
 | Layer | Service | Plan |
 |---|---|---|
-| Frontend (this repo) | Cloudflare Pages | Free tier |
+| Frontend (this folder) | Cloudflare Pages | Free tier |
 | API | DigitalOcean App Platform | `apps-s-1vcpu-0.5gb` — $5/mo |
 | Database | Neon (managed Postgres) | Free tier — `aws-ap-southeast-1` |
 
-Cloudflare Pages builds this repo directly (`npm run build`, serving `dist/`) and deploys the API
-(`apartment-review-fastapi`) to DigitalOcean, built straight from that repo's `Dockerfile`.
+Cloudflare Pages builds this folder directly (root directory `apartment-review-vue`, `npm run build`,
+serving `dist/`). The API (`apartment-review-fastapi/`) is deployed to DigitalOcean from its `Dockerfile`
+by GitHub Actions after its tests pass.
 
-All three production services are defined as code in **`infra/`** — a Pulumi (TypeScript)
-program living in this repo since it's the TS one, even though it also provisions the backend and
-database. See `infra/README.md` for the one-time GitHub authorizations, API tokens/secrets to
+All three production services are defined as code in **`../infra/`** — a Pulumi (TypeScript)
+program at the repo root that provisions the frontend, the backend and the database. See `infra/README.md` for the one-time GitHub authorizations, API tokens/secrets to
 configure, and `pulumi up` / `pulumi destroy`.
 
 **Before real users hit this:** the frontend calls a hardcoded relative `/api/apartments`

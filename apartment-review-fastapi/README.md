@@ -4,16 +4,16 @@ Backend API for the apartment review app: FastAPI + SQLModel over PostgreSQL.
 
 ## Local stack (Docker Compose)
 
-This repo has no `docker-compose.yml` of its own — it's run as one of three services defined in
-`apartment-review-vue/docker-compose.yml` (frontend repo). From that folder:
+This folder has no `docker-compose.yml` of its own — it's run as one of three services defined in
+`apartment-review-vue/docker-compose.yml` (the frontend folder). From there:
 
 ```bash
 cd ../apartment-review-vue
 docker-compose up
 ```
 
-That builds this repo's `Dockerfile` and starts it alongside Postgres and the frontend. See that
-repo's `DOCKER_GUIDE.md` for the local port mapping (the backend lands on **localhost:8100**, not
+That builds this folder's `Dockerfile` and starts it alongside Postgres and the frontend. See that
+folder's `DOCKER_GUIDE.md` for the local port mapping (the backend lands on **localhost:8100**, not
 8000 — the guide documents why).
 
 Locally the app reads `DATABASE_URL` from the environment, falling back to
@@ -23,11 +23,11 @@ Locally the app reads `DATABASE_URL` from the environment, falling back to
 
 | Layer | Service | Plan |
 |---|---|---|
-| API (this repo) | DigitalOcean App Platform | `apps-s-1vcpu-0.5gb` — $5/mo |
+| API (this folder) | DigitalOcean App Platform | `apps-s-1vcpu-0.5gb` — $5/mo |
 | Database | Neon (managed Postgres) | Free tier — `aws-ap-southeast-1` |
 | Frontend | Cloudflare Pages | Free tier |
 
-The backend deploys straight from this repo's `Dockerfile` — DigitalOcean's App Platform builds
+The backend deploys straight from this folder's `Dockerfile` — DigitalOcean's App Platform builds
 and runs it as-is, no changes needed for that part. It's a plain `uvicorn main:app --host 0.0.0.0
 --port 8000`, and `DATABASE_URL` is injected at deploy time as a secret env var pointing at the
 Neon connection string.
@@ -35,16 +35,17 @@ Neon connection string.
 ### Infrastructure as code
 
 All three production services (DigitalOcean app, Neon project, Cloudflare Pages project) are
-defined in one Pulumi (TypeScript) program, kept in the **frontend** repo since it's TypeScript:
+defined in one Pulumi (TypeScript) program, at the repo root:
 
 ```
-../apartment-review-vue/infra/
+../infra/
 ```
 
 See that folder's `README.md` for the one-time GitHub authorizations, the API tokens/secrets to
-configure, and the `pulumi up` / `pulumi destroy` commands. Nothing needs to run from this repo to
-deploy it — the Pulumi stack targets this repo by name (`yilin-chao/apartment-review-fastapi`,
-`main` branch) and DigitalOcean pulls from GitHub directly on every push.
+configure, and the `pulumi up` / `pulumi destroy` commands. Nothing needs to run from this folder to
+deploy it — the Pulumi stack points DigitalOcean at this folder of `tom-leon/apartment-review`
+(`main` branch), and GitHub Actions asks DigitalOcean to redeploy after the backend tests pass
+(`.github/workflows/backend.yml`).
 
 ### Known gaps before this is safe to point real users at
 
