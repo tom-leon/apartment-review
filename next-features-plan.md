@@ -98,6 +98,9 @@ Not in this plan, on purpose: migrations (nothing is deployed, see [ci-cd-plan.m
 - [x] `GET /apartments/recent?limit=` (1–20, default 10) → apartments with the newest published review first, for the home page. Done 2026-11-16.
   - Each one: address fields, `review_count`, `average_score` (0–100), `latest_review_text`, `photo_url`. No identity fields (decision 9).
   - Needed `Review.status` early (default `pending`), see Phase 3.
+- [x] `seed.py`: sample data for a local database, so pages have something to show before sign-in and posting exist. Done 2026-11-16.
+  - 5 sample reviewers, 6 apartments, 10 reviews (9 published, 1 pending). Street names are made up on purpose.
+  - Run: `cd apartment-review-fastapi && uv run python seed.py`. A second run adds nothing; it refuses a database that is not on this machine.
 - [ ] Move what's left of `example_endpoints.py` into `main.py` (or a `routers/` folder if `main.py` passes ~150 lines) and delete the example file.
 
 ### Frontend

@@ -17,6 +17,8 @@ Every command CI runs, plus the ones you run by hand. Learn these; they are the 
 | `uv run pytest` | run all tests in `tests/` |
 | `uv run pytest -q` | same, shorter output |
 | `uv run pytest tests/test_main.py::test_name -v` | run one test |
+| `uv run python seed.py` | add sample reviewers, apartments and reviews to the database in `DATABASE_URL`; a second run adds nothing; refuses any database that is not on this machine |
+| `DATABASE_URL=postgresql://tom:123@localhost:5532/apartment_review uv run python seed.py` | same, into the Docker Compose database |
 | `docker build .` | build the Dockerfile the way DigitalOcean will |
 
 `uv run <tool>` means "use this project's `.venv` copy of the tool". Nothing is installed globally.
