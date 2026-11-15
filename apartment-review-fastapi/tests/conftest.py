@@ -9,15 +9,27 @@ import main
 
 
 @pytest.fixture
-def client():
+def testing_session():
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
     SQLModel.metadata.create_all(engine)
-    testing_session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    return sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
+@pytest.fixture
+def db(testing_session):
+    db = testing_session()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture
+def client(testing_session):
     def override_get_db():
         db = testing_session()
         try:

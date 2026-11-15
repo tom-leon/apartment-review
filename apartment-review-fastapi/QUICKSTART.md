@@ -22,7 +22,7 @@
 - `OSMAddressData`: For parsing Nominatim API responses
 - `ApartmentCreate` & `ApartmentResponse`: For apartment operations
 - `ReviewCreate` & `ReviewResponse`: For review operations
-- `UserResponse`: For user data (without password)
+- `UserResponse`: For user data
 
 ### 3. Utility Functions (`utils.py`)
 

@@ -24,16 +24,16 @@
 
 | Area | Fact | Evidence |
 |---|---|---|
-| Reading | No endpoint returns a review. The home page can list addresses but the fetch is commented out | [HomeView.vue:44](apartment-review-vue/src/views/HomeView.vue#L44), [main.py:28-46](apartment-review-fastapi/main.py#L28-L46) |
+| Reading | No endpoint returns a review. The home page can list addresses but the fetch is commented out | [HomeView.vue:44](apartment-review-vue/src/views/HomeView.vue#L44), [main.py:38-50](apartment-review-fastapi/main.py#L38-L50) |
 | Writing | Modal collects address, optional unit number, 4 slider ratings (0–100), text; submit only console-logs | [CreateReviewModal.vue:38-53](apartment-review-vue/src/components/CreateReviewModal.vue#L38-L53), [HomeView.vue:52](apartment-review-vue/src/views/HomeView.vue#L52) |
 | Drafted but unused | Read/create endpoints for apartments and reviews already exist in a file nobody imports, with `user_uid` taken from the request instead of a login | [example_endpoints.py:69-162](apartment-review-fastapi/example_endpoints.py#L69-L162), [example_endpoints.py:114](apartment-review-fastapi/example_endpoints.py#L114) |
-| Users | `User` has a plaintext `password` column and a public `POST /user` that creates accounts for anyone | [models.py:15](apartment-review-fastapi/models.py#L15), [main.py:28](apartment-review-fastapi/main.py#L28) |
-| Ratings mismatch | Model stores ratings 1–10; UI collects 0–100 on a slider | [models.py:103-112](apartment-review-fastapi/models.py#L103-L112), [CreateReviewModal.vue:38](apartment-review-vue/src/components/CreateReviewModal.vue#L38) |
+| Users | Changed 2026-11-16: the plaintext `password` column and the public `POST /user` are gone. `User` now carries `google_sub`, Google's permanent id for the account. Nothing creates a user until `POST /auth/google` exists (Phase 2) | [models.py:15](apartment-review-fastapi/models.py#L15) |
+| Ratings mismatch | Model stores ratings 1–10; UI collects 0–100 on a slider | [models.py:105-114](apartment-review-fastapi/models.py#L105-L114), [CreateReviewModal.vue:38](apartment-review-vue/src/components/CreateReviewModal.vue#L38) |
 | Schema drift | `ReviewCreate` has a `value_rating` the model doesn't have; `calculate_apartment_average_rating` averages `Review.rating`, a column that doesn't exist (would crash if called) | [schemas.py:106](apartment-review-fastapi/schemas.py#L106), [utils.py:158](apartment-review-fastapi/utils.py#L158) |
-| Route naming | `main.py` uses singular `/user`, `/apartment`; the drafted file uses plural `/apartments`, `/reviews`; the store calls `/api/apartments` | [main.py:37](apartment-review-fastapi/main.py#L37), [example_endpoints.py:69](apartment-review-fastapi/example_endpoints.py#L69), [apartment.ts:19](apartment-review-vue/src/stores/apartment.ts#L19) |
+| Route naming | `main.py` uses singular `/apartment`; the drafted file uses plural `/apartments`, `/reviews`; the store calls `/api/apartments` | [main.py:38](apartment-review-fastapi/main.py#L38), [example_endpoints.py:69](apartment-review-fastapi/example_endpoints.py#L69), [apartment.ts:19](apartment-review-vue/src/stores/apartment.ts#L19) |
 | Frontend → API URL | Store hardcodes `/api/apartments`. `.env.development` sets `API_URL`, but Vite only exposes variables prefixed `VITE_`, so the app can't read it. Pulumi sets `VITE_API_URL` in production | [apartment.ts:19](apartment-review-vue/src/stores/apartment.ts#L19), [.env.development](apartment-review-vue/.env.development), [index.ts:129](infra/index.ts#L129) |
 | CORS | No CORS middleware, so the deployed frontend (Cloudflare) can't call the deployed API (DigitalOcean) | [README.md:51](apartment-review-fastapi/README.md#L51) |
-| One review per person per apartment | Already enforced by a unique constraint | [models.py:80](apartment-review-fastapi/models.py#L80) |
+| One review per person per apartment | Already enforced by a unique constraint | [models.py:82](apartment-review-fastapi/models.py#L82) |
 | Deployed? | Nothing is deployed yet, so schema changes are free today (no migrations needed until production has data) | [ci-cd-plan.md](ci-cd-plan.md) |
 
 ## The journey after this plan
@@ -111,7 +111,7 @@ Not in this plan, on purpose: migrations (nothing is deployed, see [ci-cd-plan.m
 ### Backend
 - [ ] `uv add google-auth itsdangerous` (`SessionMiddleware` needs `itsdangerous` to sign the cookie).
 - [ ] `config.py`: read `GOOGLE_CLIENT_ID` and `SESSION_SECRET` from the environment. ⚠️ BLOCKING for deploy: add both to the DigitalOcean app's env list in [index.ts](infra/index.ts) and set them as Pulumi secrets; add `VITE_GOOGLE_CLIENT_ID` to the Cloudflare env.
-- [ ] `User`: delete `password`; add `google_sub: str` (unique, indexed) — Google's permanent id for the account; emails can change, this can't. Delete `POST /user`, `UserCreate`, and their two tests.
+- [x] `User`: delete `password`; add `google_sub: str` (unique, indexed) — Google's permanent id for the account; emails can change, this can't. Delete `POST /user`, `UserCreate`, and their two tests. `email` is no longer unique: Google's guide says not to treat an email as the identifier.
 - [ ] `verify_google_token(credential: str) -> dict` as a FastAPI dependency wrapping `google.oauth2.id_token.verify_oauth2_token(credential, google.auth.transport.requests.Request(), GOOGLE_CLIENT_ID)`. Tests override it with a function returning `{"sub": "123", "email": ..., "name": ...}` (decision 13).
 - [ ] `POST /auth/google` body `{ "credential": "<id token>" }` → verify → find user by `sub` or create one → `request.session["user_uid"] = str(user.uid)` → return `UserResponse`.
 - [ ] `current_user` dependency: reads the session, loads the user, raises 401 when missing. Two tests.

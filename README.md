@@ -9,7 +9,7 @@ Rate the landlord, location, condition and noise of a place you've rented, so th
 Early. Both halves exist and are tested, but are not wired to each other yet.
 
 - **Frontend:** home page with the address table and the "Review an apartment" dialog: address search via OpenStreetMap, optional unit number, four 1–5 ratings, free text.
-- **Backend:** `POST /user`, `POST /apartment` and a `GET /` health check over Postgres.
+- **Backend:** `POST /apartment` and a `GET /` health check over Postgres.
 - **CI:** every push runs lint, tests and a Docker build for both halves (GitHub Actions).
 - **Next:** deploy, then public apartment pages, Google sign-in, posting, and AI screening of every review for spam, abuse, defamation and leaked personal details before it goes live.
 

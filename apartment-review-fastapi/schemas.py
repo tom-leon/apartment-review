@@ -130,16 +130,8 @@ class ReviewResponse(BaseModel):
         from_attributes = True
 
 
-class UserCreate(BaseModel):
-    """Schema for creating a user"""
-
-    name: str
-    email: str
-    password: str
-
-
 class UserResponse(BaseModel):
-    """Schema for user response (without password)"""
+    """Schema for user response"""
 
     uid: UUID
     name: str

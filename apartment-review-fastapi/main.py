@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated
-from models import User, Apartment
-from schemas import UserCreate, UserResponse, ApartmentCreate, ApartmentResponse
+from models import Apartment
+from schemas import ApartmentCreate, ApartmentResponse
 from config import cors_origins
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
@@ -33,15 +33,6 @@ def get_db():
 
 
 db_dependency = Annotated[Session, Depends(get_db)]
-
-
-@app.post("/user", response_model=UserResponse)
-async def create_user(user_data: UserCreate, db: db_dependency):
-    user = User(**user_data.model_dump())
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
 
 
 @app.post("/apartment", response_model=ApartmentResponse)

@@ -13,7 +13,7 @@ This file adds the **AI stages (4, 6, 7)** and puts all of it in one sequence. S
 | Area | State | Evidence |
 |---|---|---|
 | Frontend | Home page + review dialog exist; "Post review" only logs to the console | [HomeView.vue](apartment-review-vue/src/views/HomeView.vue) |
-| Backend | Three routes: create user, create apartment, health check. No review endpoint, no login, no CORS | [main.py:28-46](apartment-review-fastapi/main.py#L28-L46), [README.md:50](apartment-review-fastapi/README.md#L50) |
+| Backend | Two routes: create apartment, health check. No review endpoint, no login | [main.py:38-50](apartment-review-fastapi/main.py#L38-L50), [README.md:54](apartment-review-fastapi/README.md#L54) |
 | CI | Lint, tests and a Docker build run on every push, for both halves. No deploy step yet | [backend.yml](.github/workflows/backend.yml), [frontend.yml](.github/workflows/frontend.yml) |
 | Deployed | Nothing. No real data yet, so schema changes are still free | [ci-cd-plan.md](ci-cd-plan.md) |
 | AI | Nothing built yet; stages 4, 6 and 7 below are the plan. The vision has one line on it | [VISION.md:16](VISION.md#L16) |
@@ -45,7 +45,7 @@ Not scheduled yet: semantic search over reviews, translation, photo checks, auto
 
 Plain code catches the cheap stuff before any API call, so the model only sees judgement calls:
 
-- Logged in with Google (stage 2) and one review per person per apartment (already enforced: [models.py:80](apartment-review-fastapi/models.py#L80))
+- Logged in with Google (stage 2) and one review per person per apartment (already enforced: [models.py:82](apartment-review-fastapi/models.py#L82))
 - At most 5 reviews per person per day
 - Length between 20 and 3,000 characters
 - Any `http://` or `https://` link in the text → rejected on the spot, with the message "links aren't allowed"

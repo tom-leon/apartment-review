@@ -53,9 +53,7 @@ deploy it — the Pulumi stack points DigitalOcean at this folder of `tom-leon/a
 
 ### Known gaps before this is safe to point real users at
 
-- **No auth on any endpoint.** `POST /apartment` and `POST /user` are open to the internet.
-- **Passwords are stored in plaintext.** `models.py`'s `User.password` is written and returned
-  as-is; needs hashing (e.g. `passlib[bcrypt]`) before real accounts exist.
+- **No auth on any endpoint.** `POST /apartment` is open to the internet.
 - **No migrations.** `main.py` calls `SQLModel.metadata.create_all(engine)` on startup, which
   creates missing tables but never alters existing ones. Add Alembic before the first schema
   change against production data.
