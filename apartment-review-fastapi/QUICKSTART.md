@@ -8,9 +8,7 @@
 - **Apartment**: Complete OSM integration with:
   - OSM reference data (osm_type, osm_id, osm_class)
   - Normalized address components (street, house_number, city, state, postcode, country, country_code)
-  - High-precision coordinates (DECIMAL type)
   - Unique constraint on address to prevent duplicates
-  - Location index for efficient queries
 - **Review**: Enhanced with:
   - Title and content fields
   - 5 category ratings (landlord, location, condition, value, quietness)
@@ -28,7 +26,6 @@
 
 - `get_or_create_apartment()`: Smart apartment creation with duplicate handling
 - `get_apartment_by_id()`: Fetch apartment by UUID
-- `get_apartments_by_location()`: Find nearby apartments
 - `get_reviews_for_apartment()`: Get all reviews for an apartment
 - `get_user_review_for_apartment()`: Check if user already reviewed
 - `calculate_apartment_average_rating()`: Calculate average rating
@@ -81,9 +78,7 @@ osm_data = OSMAddressData(
     postcode="10001",
     country="United States",
     country_code="US",
-    display_name="123 Main St, New York, NY 10001, USA",
-    lat="40.7589",
-    lon="-73.9851"
+    display_name="123 Main St, New York, NY 10001, USA"
 )
 
 apartment, created = get_or_create_apartment(db, osm_data)
@@ -179,7 +174,7 @@ const review = await fetch("/api/v1/reviews", {
 ✅ **OSM Integration**: Stores OSM IDs for map linking  
 ✅ **Stable IDs**: Your own UUIDs won't change even if OSM data changes  
 ✅ **Rich Data**: Multiple rating categories for detailed reviews  
-✅ **Efficient Queries**: Proper indexes on location and relationships
+✅ **Efficient Queries**: Proper indexes on address and relationships
 
 ## Next Steps
 

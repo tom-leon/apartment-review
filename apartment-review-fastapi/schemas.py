@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from decimal import Decimal
 
 
 class OSMAddressData(BaseModel):
@@ -26,24 +25,12 @@ class OSMAddressData(BaseModel):
     # Full address
     display_name: str
 
-    # Coordinates
-    lat: str  # OSM returns as string
-    lon: str  # OSM returns as string
-
     class Config:
         populate_by_name = True
 
     def get_city(self) -> str:
         """Get city name, trying different OSM fields"""
         return self.city or self.town or self.village or "Unknown"
-
-    def get_latitude(self) -> Decimal:
-        """Convert latitude string to Decimal"""
-        return Decimal(self.lat)
-
-    def get_longitude(self) -> Decimal:
-        """Convert longitude string to Decimal"""
-        return Decimal(self.lon)
 
 
 class ApartmentCreate(BaseModel):
@@ -62,8 +49,6 @@ class ApartmentCreate(BaseModel):
     country_code: str
 
     display_name: str
-    latitude: Decimal
-    longitude: Decimal
 
 
 class ApartmentResponse(BaseModel):
@@ -83,8 +68,6 @@ class ApartmentResponse(BaseModel):
     country_code: str
 
     display_name: str
-    latitude: Decimal
-    longitude: Decimal
 
     created_at: datetime
     updated_at: datetime

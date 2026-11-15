@@ -1,9 +1,8 @@
-from sqlmodel import SQLModel, Field, Column, Index
-from sqlalchemy import UniqueConstraint, DECIMAL
+from sqlmodel import SQLModel, Field, Index
+from sqlalchemy import UniqueConstraint
 from uuid import UUID, uuid4
 from datetime import datetime
 from typing import Optional
-from decimal import Decimal
 
 
 class User(SQLModel, table=True):
@@ -31,7 +30,6 @@ class Apartment(SQLModel, table=True):
             "country_code",
             name="uq_apartment_address",
         ),
-        Index("idx_apartment_location", "latitude", "longitude"),
     )
 
     uid: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
@@ -60,16 +58,6 @@ class Apartment(SQLModel, table=True):
 
     # Full address for display
     display_name: str = Field(description="Full formatted address from OSM")
-
-    # Coordinates - using DECIMAL for precision
-    latitude: Decimal = Field(
-        sa_column=Column(DECIMAL(10, 8), nullable=False),
-        description="Latitude coordinate",
-    )
-    longitude: Decimal = Field(
-        sa_column=Column(DECIMAL(11, 8), nullable=False),
-        description="Longitude coordinate",
-    )
 
     # Metadata
     created_at: datetime = Field(default_factory=datetime.utcnow)

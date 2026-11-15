@@ -26,14 +26,14 @@
 |---|---|---|
 | Reading | No endpoint returns a review. The home page can list addresses but the fetch is commented out | [HomeView.vue:44](apartment-review-vue/src/views/HomeView.vue#L44), [main.py:38-50](apartment-review-fastapi/main.py#L38-L50) |
 | Writing | Modal collects address, optional unit number, 4 slider ratings (0–100), text; submit only console-logs | [CreateReviewModal.vue:38-53](apartment-review-vue/src/components/CreateReviewModal.vue#L38-L53), [HomeView.vue:52](apartment-review-vue/src/views/HomeView.vue#L52) |
-| Drafted but unused | Read/create endpoints for apartments and reviews already exist in a file nobody imports, with `user_uid` taken from the request instead of a login | [example_endpoints.py:69-162](apartment-review-fastapi/example_endpoints.py#L69-L162), [example_endpoints.py:114](apartment-review-fastapi/example_endpoints.py#L114) |
-| Users | Changed 2026-11-16: the plaintext `password` column and the public `POST /user` are gone. `User` now carries `google_sub`, Google's permanent id for the account. Nothing creates a user until `POST /auth/google` exists (Phase 2) | [models.py:15](apartment-review-fastapi/models.py#L15) |
+| Drafted but unused | Read/create endpoints for apartments and reviews already exist in a file nobody imports, with `user_uid` taken from the request instead of a login | [example_endpoints.py:68-140](apartment-review-fastapi/example_endpoints.py#L68-L140), [example_endpoints.py:92](apartment-review-fastapi/example_endpoints.py#L92) |
+| Users | Changed 2026-11-16: the plaintext `password` column and the public `POST /user` are gone. `User` now carries `google_sub`, Google's permanent id for the account. Nothing creates a user until `POST /auth/google` exists (Phase 2) | [models.py:14](apartment-review-fastapi/models.py#L14) |
 | Ratings mismatch | Model stores ratings 1–10; UI collects 0–100 on a slider | [models.py:105-114](apartment-review-fastapi/models.py#L105-L114), [CreateReviewModal.vue:38](apartment-review-vue/src/components/CreateReviewModal.vue#L38) |
 | Schema drift | `ReviewCreate` has a `value_rating` the model doesn't have; `calculate_apartment_average_rating` averages `Review.rating`, a column that doesn't exist (would crash if called) | [schemas.py:106](apartment-review-fastapi/schemas.py#L106), [utils.py:158](apartment-review-fastapi/utils.py#L158) |
 | Route naming | `main.py` uses singular `/apartment`; the drafted file uses plural `/apartments`, `/reviews`; the store calls `/api/apartments` | [main.py:38](apartment-review-fastapi/main.py#L38), [example_endpoints.py:69](apartment-review-fastapi/example_endpoints.py#L69), [apartment.ts:19](apartment-review-vue/src/stores/apartment.ts#L19) |
 | Frontend → API URL | Store hardcodes `/api/apartments`. `.env.development` sets `API_URL`, but Vite only exposes variables prefixed `VITE_`, so the app can't read it. Pulumi sets `VITE_API_URL` in production | [apartment.ts:19](apartment-review-vue/src/stores/apartment.ts#L19), [.env.development](apartment-review-vue/.env.development), [index.ts:129](infra/index.ts#L129) |
 | CORS | No CORS middleware, so the deployed frontend (Cloudflare) can't call the deployed API (DigitalOcean) | [README.md:51](apartment-review-fastapi/README.md#L51) |
-| One review per person per apartment | Already enforced by a unique constraint | [models.py:82](apartment-review-fastapi/models.py#L82) |
+| One review per person per apartment | Already enforced by a unique constraint | [models.py:70](apartment-review-fastapi/models.py#L70) |
 | Deployed? | Nothing is deployed yet, so schema changes are free today (no migrations needed until production has data) | [ci-cd-plan.md](ci-cd-plan.md) |
 
 ## The journey after this plan
@@ -134,7 +134,7 @@ Not in this plan, on purpose: migrations (nothing is deployed, see [ci-cd-plan.m
 
 ### Backend
 - [ ] `Review`: ratings `ge=0, le=100`; delete `title`; add `lived_in_year: int`, `status: str = "pending"`, `published_at: datetime | None`. Delete `value_rating` from `schemas.py`.
-- [ ] `POST /reviews` (needs `current_user`): body = `apartment_uid`, four ratings, `content`, `lived_in_year`; `user_uid` from the session, never from the body. 404 unknown apartment; 409 if this user already reviewed it (keep the drafted logic from [example_endpoints.py:109](apartment-review-fastapi/example_endpoints.py#L109)).
+- [ ] `POST /reviews` (needs `current_user`): body = `apartment_uid`, four ratings, `content`, `lived_in_year`; `user_uid` from the session, never from the body. 404 unknown apartment; 409 if this user already reviewed it (keep the drafted logic from [example_endpoints.py:87](apartment-review-fastapi/example_endpoints.py#L87)).
 - [ ] `PUT /reviews/{uid}` (owner only, else 403): edits put it back to `pending`.
 - [ ] `GET /apartments/{uid}/reviews`: published ones, plus the caller's own pending/rejected one if logged in (flagged with `status`; still no identity fields).
 - [ ] Admin: `is_admin` on `User`; `require_admin` dependency; `GET /admin/reviews?status=pending`; `POST /admin/reviews/{uid}/publish` (sets `published_at`) and `/reject`.
@@ -151,7 +151,7 @@ Not in this plan, on purpose: migrations (nothing is deployed, see [ci-cd-plan.m
 
 | # | Feature | Why it earns its place | Size | Login? |
 |---|---|---|---|---|
-| 1 | **Browse by suburb + map** (Leaflet with OpenStreetMap tiles, free). `GET /apartments/nearby` is already drafted ([example_endpoints.py:83](apartment-review-fastapi/example_endpoints.py#L83)) | Turns "look up one address" into "explore where I'm moving to". The second reason to visit | M | No |
+| 1 | **Browse by suburb + map** (Leaflet with OpenStreetMap tiles, free). The suburb list works off `city`/`postcode`; the map pins need `latitude`/`longitude` back on `Apartment` (removed 2026-11-16) | Turns "look up one address" into "explore where I'm moving to". The second reason to visit | M | No |
 | 2 | **"Was this helpful?"** vote on a review | Cheap engagement, sorts good reviews up, and a gentle reason to sign in | S | Yes |
 | 3 | **Save an apartment + email when a new review is published** | The retention loop: the site comes back to the user. Needs an email provider (Resend or Mailgun free tier). This is the right kind of login gate | M | Yes |
 | 4 | **Report a review** → lands in the admin queue | Lets readers do the moderation legwork; needed before any real traffic | S | Yes |

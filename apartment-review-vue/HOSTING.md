@@ -29,10 +29,10 @@ cannot go on a free tier that sleeps on idle. It already has a working `Dockerfi
 every container-based platform below is a candidate with no extra work.
 
 **Database** — PostgreSQL. The schema is small (three tables: `user`, `apartment`, `review`) and
-uses `DECIMAL` lat/long plus a location index, so any standard managed Postgres works. No
-PostGIS is required today, but note that if apartment search by radius ever gets added, PostGIS
-availability becomes a selection criterion — Neon and Supabase both support it, some smaller
-hosts don't.
+uses only standard column types (no coordinates are stored), so any standard managed Postgres
+works. No PostGIS is required today, but note that if apartment search by radius ever gets
+added, PostGIS availability becomes a selection criterion — Neon and Supabase both support it,
+some smaller hosts don't.
 
 ## Frontend hosting
 

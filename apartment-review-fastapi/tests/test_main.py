@@ -6,8 +6,6 @@ def test_create_apartment_returns_response(client):
             "country": "Australia",
             "country_code": "AU",
             "display_name": "1 Test St, Sydney, Australia",
-            "latitude": "-33.8688",
-            "longitude": "151.2093",
         },
     )
 
@@ -15,6 +13,8 @@ def test_create_apartment_returns_response(client):
     body = response.json()
     assert body["city"] == "Sydney"
     assert "uid" in body
+    assert "latitude" not in body
+    assert "longitude" not in body
 
 
 def test_create_apartment_rejects_missing_city(client):
@@ -24,8 +24,6 @@ def test_create_apartment_rejects_missing_city(client):
             "country": "Australia",
             "country_code": "AU",
             "display_name": "1 Test St, Sydney, Australia",
-            "latitude": "-33.8688",
-            "longitude": "151.2093",
         },
     )
 

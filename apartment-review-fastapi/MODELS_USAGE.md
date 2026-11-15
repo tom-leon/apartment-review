@@ -12,14 +12,12 @@ The database schema consists of three main models:
 
 ### Apartment Model
 
-The `Apartment` model stores comprehensive address and location data from OpenStreetMap:
+The `Apartment` model stores address data from OpenStreetMap:
 
 **Key Features:**
 
 - Unique constraint on normalized address (street, house_number, city, postcode, country_code)
 - Stores OSM reference data (osm_type, osm_id, osm_class) for linking back to the map
-- High-precision coordinates using DECIMAL type
-- Indexed for efficient location-based queries
 
 **Fields:**
 
@@ -27,7 +25,6 @@ The `Apartment` model stores comprehensive address and location data from OpenSt
 - `osm_type`, `osm_id`, `osm_class`: OpenStreetMap reference
 - `street`, `house_number`, `city`, `state`, `postcode`, `country`, `country_code`: Normalized address
 - `display_name`: Full formatted address from OSM
-- `latitude`, `longitude`: Precise coordinates (DECIMAL)
 - `created_at`, `updated_at`: Timestamps
 
 ### Review Model
@@ -69,9 +66,7 @@ osm_data = OSMAddressData(
     postcode="10001",
     country="United States",
     country_code="US",
-    display_name="123 Main Street, New York, NY 10001, United States",
-    lat="40.7589",
-    lon="-73.9851"
+    display_name="123 Main Street, New York, NY 10001, United States"
 )
 
 # Get or create apartment (handles duplicates automatically)
@@ -111,22 +106,7 @@ db.add(review)
 db.commit()
 ```
 
-### 3. Querying Apartments by Location
-
-```python
-from utils import get_apartments_by_location
-
-# Find apartments within 1km of a location
-apartments = get_apartments_by_location(
-    db,
-    latitude=40.7589,
-    longitude=-73.9851,
-    radius_km=1.0,
-    limit=50
-)
-```
-
-### 4. Getting Reviews for an Apartment
+### 3. Getting Reviews for an Apartment
 
 ```python
 from utils import get_reviews_for_apartment, calculate_apartment_average_rating

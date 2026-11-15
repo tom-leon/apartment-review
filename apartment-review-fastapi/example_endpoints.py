@@ -26,7 +26,6 @@ from schemas import (
 from utils import (
     get_or_create_apartment,
     get_apartment_by_id,
-    get_apartments_by_location,
     get_reviews_for_apartment,
     get_user_review_for_apartment,
 )
@@ -78,27 +77,6 @@ async def get_apartment(apartment_uid: UUID, db: Session = Depends(get_db)):
         )
 
     return apartment
-
-
-@router.get("/apartments/nearby", response_model=List[ApartmentResponse])
-async def get_nearby_apartments(
-    latitude: float,
-    longitude: float,
-    radius_km: float = 1.0,
-    limit: int = 50,
-    db: Session = Depends(get_db),
-):
-    """
-    Get apartments near a specific location.
-
-    Args:
-        latitude: Center latitude
-        longitude: Center longitude
-        radius_km: Search radius in kilometers (default: 1.0)
-        limit: Maximum number of results (default: 50)
-    """
-    apartments = get_apartments_by_location(db, latitude, longitude, radius_km, limit)
-    return apartments
 
 
 # ============================================================================

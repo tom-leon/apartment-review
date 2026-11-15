@@ -45,7 +45,7 @@ Not scheduled yet: semantic search over reviews, translation, photo checks, auto
 
 Plain code catches the cheap stuff before any API call, so the model only sees judgement calls:
 
-- Logged in with Google (stage 2) and one review per person per apartment (already enforced: [models.py:82](apartment-review-fastapi/models.py#L82))
+- Logged in with Google (stage 2) and one review per person per apartment (already enforced: [models.py:70](apartment-review-fastapi/models.py#L70))
 - At most 5 reviews per person per day
 - Length between 20 and 3,000 characters
 - Any `http://` or `https://` link in the text → rejected on the spot, with the message "links aren't allowed"
