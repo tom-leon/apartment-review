@@ -11,6 +11,7 @@ You can integrate these into your main.py or create separate routers.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, status
+from returns.result import Failure, Success
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
@@ -22,12 +23,16 @@ from schemas import (
     ApartmentResponse,
     ReviewCreate,
     ReviewResponse,
+    ReviewUpdate,
 )
 from utils import (
+    ReviewError,
+    delete_own_review,
     get_or_create_apartment,
     get_apartment_by_id,
     get_reviews_for_apartment,
     get_user_review_for_apartment,
+    update_own_review,
 )
 
 router = APIRouter()
@@ -135,6 +140,50 @@ async def create_review(
     db.refresh(review)
 
     return review
+
+
+def review_http_error(error: ReviewError) -> HTTPException:
+    """The HTTP error for a review that could not be changed"""
+    if error is ReviewError.NOT_FOUND:
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Review not found"
+        )
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You can only change your own review",
+    )
+
+
+@router.put("/reviews/{review_uid}", response_model=ReviewResponse)
+async def update_review(
+    review_uid: UUID,
+    review_data: ReviewUpdate,
+    user_uid: UUID,  # TODO: get this from the logged-in user once login exists
+    db: Session = Depends(get_db),
+):
+    """
+    Replace the text and ratings of your own review.
+
+    Anything left out of the request is cleared, and the review goes back to
+    "pending" so it is checked again before visitors see it.
+    """
+    match update_own_review(db, review_uid, user_uid, review_data):
+        case Success(review):
+            return review
+        case Failure(error):
+            raise review_http_error(error)
+
+
+@router.delete("/reviews/{review_uid}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_review(
+    review_uid: UUID,
+    user_uid: UUID,  # TODO: get this from the logged-in user once login exists
+    db: Session = Depends(get_db),
+):
+    """Delete your own review for good"""
+    match delete_own_review(db, review_uid, user_uid):
+        case Failure(error):
+            raise review_http_error(error)
 
 
 @router.get("/apartments/{apartment_uid}/reviews", response_model=List[ReviewResponse])

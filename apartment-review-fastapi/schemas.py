@@ -90,6 +90,17 @@ class ReviewCreate(BaseModel):
     quietness_rating: Optional[int] = Field(default=None, ge=1, le=10)
 
 
+class ReviewUpdate(BaseModel):
+    """Schema for replacing the text and ratings of a review"""
+
+    content: Optional[str] = None
+
+    landlord_rating: Optional[int] = Field(default=None, ge=0, le=100)
+    location_rating: Optional[int] = Field(default=None, ge=0, le=100)
+    condition_rating: Optional[int] = Field(default=None, ge=0, le=100)
+    quietness_rating: Optional[int] = Field(default=None, ge=0, le=100)
+
+
 class ReviewResponse(BaseModel):
     """Schema for review response"""
 
@@ -103,7 +114,6 @@ class ReviewResponse(BaseModel):
     landlord_rating: Optional[int]
     location_rating: Optional[int]
     condition_rating: Optional[int]
-    value_rating: Optional[int]
     quietness_rating: Optional[int]
 
     created_at: datetime
