@@ -1,8 +1,56 @@
 # CI/CD plan — apartment-review (Vue + FastAPI)
 
-**Goal:** every push to `main` runs the backend tests and the frontend tests + build automatically, and puts the backend live only after its tests pass, while Cloudflare builds and publishes the frontend from `main` itself. Single contributor, no pull requests: `main` is the only branch.
+## Goal
 
-**Architecture:** two small GitHub Actions workflows (one per app, each only runs when its folder changes). The backend workflow runs lint + tests + a Docker build, then asks DigitalOcean to redeploy. The frontend workflow runs the Vitest tests and the build; Cloudflare Pages builds and deploys `main` on its own with the same build command. The existing Pulumi program is fixed so it can run, pointed at the monorepo, and told to let CI trigger backend deploys.
+- Every push to `main` runs the backend tests and the frontend tests + build, automatically.
+- The backend goes live only after its tests pass.
+- Cloudflare builds and publishes the frontend from `main` by itself.
+- Single contributor, no pull requests: `main` is the only branch.
+
+## Progress
+
+![](https://img.shields.io/badge/PROGRESS-4%2F7_TASKS_DONE-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/STEPS-24%2F40-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/CI_ON_MAIN-GREEN-2ea44f?style=for-the-badge) ![](https://img.shields.io/badge/PRODUCTION-NOT_YET-d73a49?style=for-the-badge)
+
+```
+TASKS   🟩🟩🟩🟩⬜⬜⬜   4 / 7
+STEPS   🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜   24 / 40
+```
+
+| # | Task | Status | Steps |
+|---|---|---|---|
+| 1 | Make black and flake8 pass | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩🟩🟩🟩 7/7 |
+| 2 | Backend CI workflow | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩 4/4 |
+| 3 | Frontend CI workflow | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩 4/4 |
+| 4 | Pulumi points at the monorepo | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩🟩🟩🟩🟩🟩 9/9 |
+| 5 | **First production deploy (manual)** | ![](https://img.shields.io/badge/NOT_STARTED-d73a49?style=flat-square) | ⬜⬜⬜⬜⬜⬜ 0/6 |
+| 6 | Backend deploy job | ![](https://img.shields.io/badge/BLOCKED-8b949e?style=flat-square) 🔒 needs Task 5 step 5 | ⬜⬜⬜⬜ 0/4 |
+| 7 | Dependabot | ![](https://img.shields.io/badge/READY-0969da?style=flat-square) | ⬜⬜⬜⬜⬜⬜ 0/6 |
+
+**Milestones**
+
+- ✅ First green run — `frontend` run 42473923612, 22 s (2026-11-08)
+- ✅ First failure, fixed — `backend` run 42473923633 failed in 6 s: `setup-uv@v10` does not exist
+- ✅ Pinned to `@v10.3.3`; next run green in 50 s
+- ✅ Tests: backend 4 → 6, frontend 0 → 4
+- ✅ CORS middleware done ahead of the plan (`ce61742`)
+- ✅ `VITE_API_URL` wiring done ahead of the plan (`d424bee`)
+- ✅ `infra/` moved to the repo root, beside the two apps
+- ✅ Repo public since 2026-11-08
+
+**🔴 Next: Task 5, the first production deploy.**
+
+- The one manual task: dashboard clicks and real API tokens.
+- Run from `infra/`.
+
+---
+
+## Architecture
+
+- Two small GitHub Actions workflows, one per app. Each runs only when its folder changes.
+- Backend workflow: lint + tests + Docker build, then asks DigitalOcean to redeploy.
+- Frontend workflow: Vitest tests + build. Reports only.
+- Cloudflare Pages builds and deploys `main` on its own, with the same build command.
+- The Pulumi program: fixed so it runs, pointed at the monorepo, told to let CI trigger backend deploys.
 
 **Tech stack:** GitHub Actions · uv + pytest + black + flake8 · npm + vue-tsc + Vite · Docker · Pulumi (TypeScript) · DigitalOcean App Platform · Cloudflare Pages · Neon Postgres.
 
@@ -12,22 +60,46 @@
 
 ## Why
 
-Right now nothing checks a change after it lands on `main`, and nothing is deployed anywhere, so there's no way to put the app in front of a person. The cost of staying here: a broken commit is found by hand, days later, and "deploy" is a manual afternoon that has never actually been done. After this plan: a red check on `main` tells you within ~3 minutes that you broke tests, formatting or the Docker image; a push to `main` ships the backend by itself and only if green; the frontend ships itself on every `main` build; and production exists.
+Before this plan:
 
-## What's true today (checked 2026-10-13)
+- Nothing checked a change after it landed on `main`.
+- Nothing was deployed anywhere, so the app could not be put in front of a person.
+- A broken commit was found by hand, days later.
+- "Deploy" was a manual afternoon that had never actually been done.
 
-| Area | Fact | Evidence |
+After this plan:
+
+- A red check on `main` says within ~3 minutes that tests, formatting or the Docker image broke.
+- A push to `main` ships the backend by itself, and only if green.
+- The frontend ships itself on every `main` build.
+- Production exists.
+
+## What's true today (checked 2026-10-13, before Task 1)
+
+| Area | Fact at the start | Evidence |
 |---|---|---|
-| CI | No workflows anywhere; GitHub Actions is enabled on the repo | no `.github/` folder; `gh api repos/.../actions/permissions` → `enabled: true` |
-| Repo | Private, on GitHub Free. **Branch protection and rulesets are not available** (403 "Upgrade to GitHub Pro or make this repository public") | `gh api .../branches/main/protection` |
-| Backend tests | 4 pass, using an in-memory SQLite database, so **CI needs no Postgres** | `uv run pytest` ([conftest.py](apartment-review-fastapi/tests/conftest.py)) |
-| Backend lint | `black --check` fails (6 files, formatting only, ~330 diff lines). `flake8` with a black-compatible config leaves 10 real issues after black: 8 unused imports, 2 long lines. There is no flake8 config, so today it also scans `.venv` and reports 28,000 "errors" | `uv run black --check .`, `uv run flake8 .` |
+| CI | No workflows anywhere. GitHub Actions is enabled on the repo | no `.github/` folder; `gh api repos/.../actions/permissions` → `enabled: true` |
+| Repo | Private, on GitHub Free. **No branch protection or rulesets** (403 "Upgrade to GitHub Pro or make this repository public") | `gh api .../branches/main/protection` |
+| Backend tests | 4 pass, on an in-memory SQLite database, so **CI needs no Postgres** | `uv run pytest` ([conftest.py](apartment-review-fastapi/tests/conftest.py)) |
+| Backend format | `black --check` fails: 6 files, formatting only, ~330 diff lines | `uv run black --check .` |
+| Backend lint | `flake8` with a black-compatible config leaves 10 real issues after black: 8 unused imports, 2 long lines | `uv run flake8 .` |
+| Backend lint config | None. So flake8 also scans `.venv` and reports 28,000 "errors" | `uv run flake8 .` |
 | Backend lockfile | `uv.lock` is in sync with `pyproject.toml` | `uv lock --check` → ok |
 | Backend Docker | [Dockerfile](apartment-review-fastapi/Dockerfile) builds | `docker build .` → exit 0 |
-| Frontend | `npm ci`, `npm test` (Vitest, 2 tests) and `npm run build` (type-check + Vite build) pass on Node 22. **No lint exists** | [package.json](apartment-review-vue/package.json) |
-| Infra | The Pulumi project file is malformed, so Pulumi can't even load it. With the bad block removed, it loads and shows **no stacks: nothing has ever been deployed** | `pulumi stack ls` → "Configuration key 'cloudflare:apiToken' is namespaced and must provide an attribute 'value'" ([Pulumi.yaml:4-8](infra/Pulumi.yaml#L4-L8)) |
-| Infra | The program still names the two pre-monorepo repos (`apartment-review-fastapi`, `apartment-review-vue`), which still exist on GitHub, unarchived, last pushed 2026-02-06 | [index.ts:14-17](infra/index.ts#L14-L17) |
-| GitHub account | Renamed from `yilin-chao` to `tom-leon` (checked 2026-11-08). Old URLs redirect, so `git push` still works, but DigitalOcean, Cloudflare and Pulumi must use `tom-leon` | `gh api user` → `tom-leon`; `gh repo view yilin-chao/apartment-review` → url `tom-leon/apartment-review` |
+| Frontend | `npm ci`, `npm test` (Vitest, 2 tests) and `npm run build` (type-check + Vite build) pass on Node 22 | [package.json](apartment-review-vue/package.json) |
+| Frontend lint | **None exists** | [package.json](apartment-review-vue/package.json) |
+| Infra | The Pulumi project file is malformed, so Pulumi can't load it | `pulumi stack ls` → "Configuration key 'cloudflare:apiToken' is namespaced and must provide an attribute 'value'" ([Pulumi.yaml:4-8](infra/Pulumi.yaml#L4-L8)) |
+| Infra | With the bad block removed it loads and shows **no stacks: nothing has ever been deployed** | `pulumi stack ls` |
+| Infra | The program still names the two pre-monorepo repos (`apartment-review-fastapi`, `apartment-review-vue`). Both still exist on GitHub, unarchived, last pushed 2026-02-06 | [index.ts:14-17](infra/index.ts#L14-L17) |
+| GitHub account | Renamed from `yilin-chao` to `tom-leon` (checked 2026-11-08). Old URLs redirect, so `git push` still works. DigitalOcean, Cloudflare and Pulumi must use `tom-leon` | `gh api user` → `tom-leon`; `gh repo view yilin-chao/apartment-review` → url `tom-leon/apartment-review` |
+
+**Changed since:**
+
+- Repo is **public** (so branch protection is now available, if ever wanted).
+- Backend format and lint green.
+- 6 backend tests, 4 frontend tests.
+- Pulumi loads.
+- Program points at `tom-leon/apartment-review`.
 
 ## Design
 
@@ -47,7 +119,14 @@ you push to main
         and publishes dist/. If the build fails, the previous deployment stays live.
 ```
 
-Terms used above, once: **CI** = the checks that run on every change. **CD** = the step that puts a change live. **Workflow** = one YAML file that GitHub Actions runs. **`doctl`** = DigitalOcean's command-line tool. **App Platform** = DigitalOcean's "give it a Dockerfile and it runs it" service. **Cloudflare Pages** = a static-site host that builds straight from a Git repo.
+Terms, once:
+
+- **CI** = the checks that run on every change.
+- **CD** = the step that puts a change live.
+- **Workflow** = one YAML file that GitHub Actions runs.
+- **`doctl`** = DigitalOcean's command-line tool.
+- **App Platform** = DigitalOcean's "give it a Dockerfile and it runs it" service.
+- **Cloudflare Pages** = a static-site host that builds straight from a Git repo.
 
 ### Options considered
 
@@ -60,54 +139,88 @@ Terms used above, once: **CI** = the checks that run on every change. **CD** = t
 | Tested == deployed? | no | same commit, rebuilt by DigitalOcean | exactly the tested image |
 | Extra code | none | ~10 lines of YAML | ~60 lines of YAML + Pulumi rewrite (image source, direct-upload Pages) |
 
-**Recommendation: B.** It is the smallest change that makes tests actually gate a deploy. A doesn't gate anything. C's extra guarantee (ship the exact image CI tested) only matters once the Docker build isn't reproducible, and it costs a Pulumi rewrite. Move to C later if a DigitalOcean build ever differs from CI (see the Dockerfile note under *Found while planning*).
+**Recommendation: B.**
+
+- Smallest change that makes tests actually gate a deploy.
+- A gates nothing.
+- C ships the exact image CI tested. That only matters once the Docker build isn't reproducible, and it costs a Pulumi rewrite.
+- Move to C later if a DigitalOcean build ever differs from CI (see the Dockerfile note under *Found while planning*).
 
 ### Decisions you can still flip
 
 1. **Approach B** over A or C (above).
-2. **Lint in CI.** `black` and `flake8` are already dev dependencies, so the plan runs them and Task 1 makes them pass (10 one-line fixes + a black reformat). To skip: drop Task 1 and the two lint lines in Task 2.
-3. **Frontend checks.** Vitest is now installed with one store test, so CI runs `npm test` then `npm run build`. ESLint and Prettier are still not installed; adding them is its own decision.
-4. **Frontend tests don't gate the frontend deploy.** Cloudflare deploys `main` as soon as its own build passes; a failing Vitest test only shows red in Actions. To gate it too: set `productionDeploymentEnabled: false` in Pulumi, create a Cloudflare deploy hook (a secret URL that starts a build when POSTed), and add a `deploy` job to `frontend.yml` that `curl -X POST`s it after tests. About 8 lines plus one more secret. Not in this plan; say if you want it.
+2. **Lint in CI.**
+   - `black` and `flake8` are already dev dependencies.
+   - The plan runs them; Task 1 makes them pass (10 one-line fixes + a black reformat).
+   - To skip: drop Task 1 and the two lint lines in Task 2.
+3. **Frontend checks.**
+   - Vitest is installed with store tests, so CI runs `npm test` then `npm run build`.
+   - ESLint and Prettier are still not installed. Adding them is its own decision.
+4. **Frontend tests don't gate the frontend deploy.**
+   - Cloudflare deploys `main` as soon as its own build passes.
+   - A failing Vitest test only shows red in Actions.
+   - To gate it too: `productionDeploymentEnabled: false` in Pulumi, a Cloudflare deploy hook (a secret URL that starts a build when POSTed), and a `deploy` job in `frontend.yml` that `curl -X POST`s it after tests.
+   - About 8 lines plus one more secret. Not in this plan.
 
 ## Global constraints
 
-- Python **3.10** everywhere: [.python-version](apartment-review-fastapi/.python-version), [Dockerfile](apartment-review-fastapi/Dockerfile) `python:3.10-slim`. Dependencies via **uv** only; never `uv pip` ([CLAUDE.md](apartment-review-fastapi/CLAUDE.md)).
-- Node **22**: [.nvmrc](apartment-review-vue/.nvmrc), `engines >=22.12.0`. Install with `npm ci` (uses `package-lock.json` exactly).
-- Action versions as of 2026-11-08: `actions/checkout@v7`, `actions/setup-node@v7`, `astral-sh/setup-uv@v10.3.3`, `digitalocean/action-doctl@v2`. setup-uv publishes **no floating `v10` tag** (the first run failed with "unable to find version `v10`"), so it is pinned to the full version and Dependabot (Task 7) will bump it. `action-doctl@v2` is a *branch*, not a tag, and resolves fine.
-- Pulumi provider versions stay as pinned in [infra/package.json](infra/package.json). Cloudflare provider v5 has `buildConfig.rootDir` but **no** build-watch-path fields, so that stays a dashboard setting.
-- Australian English in code and docs.
-- Git: single contributor, no PRs, everything goes straight to `main`. One-line commit messages, no `feat:` prefix.
-- Cloud: every create/change in DigitalOcean, Cloudflare, Neon or Pulumi Cloud is a deliberate manual step, never automated from a plan. Task 5 is run by hand.
+- **Python 3.10** everywhere: [.python-version](apartment-review-fastapi/.python-version), [Dockerfile](apartment-review-fastapi/Dockerfile) `python:3.10-slim`.
+- **uv only** for dependencies; never `uv pip` ([CLAUDE.md](apartment-review-fastapi/CLAUDE.md)).
+- **Node 22**: [.nvmrc](apartment-review-vue/.nvmrc), `engines >=22.12.0`.
+- **`npm ci`** for installs (uses `package-lock.json` exactly).
+- **Local `npm test` needs Node 22** (`nvm use 22`); jsdom 30 refuses Node 20.
+- **Action versions** as of 2026-11-08: `actions/checkout@v7`, `actions/setup-node@v7`, `astral-sh/setup-uv@v10.3.3`, `digitalocean/action-doctl@v2`.
+  - setup-uv publishes **no floating `v10` tag**; the first run failed with "unable to find version `v10`".
+  - So it is pinned to the full version. Dependabot (Task 7) will bump it.
+  - `action-doctl@v2` is a *branch*, not a tag, and resolves fine.
+- **Pulumi providers** stay as pinned in [infra/package.json](infra/package.json).
+  - Cloudflare provider v5 has `buildConfig.rootDir` but **no** build-watch-path fields. That stays a dashboard setting.
+- **Australian English** in code and docs.
+- **Git:** single contributor, no PRs, straight to `main`. One-line commit messages, no `feat:` prefix.
+- **Cloud:** every create/change in DigitalOcean, Cloudflare, Neon or Pulumi Cloud is a deliberate manual step, never automated from a plan. Task 5 is run by hand.
 
 ## Review focus
 
-Things the design implies but no unit test covers. Each is pinned by a step in the task named.
+Things the design implies but no unit test covers.
 
-1. `pyproject.toml` edited without re-locking → CI must **fail**, not quietly install something else. Pinned by `uv sync --locked` (Task 2).
-2. Two pushes to `main` minutes apart → the second deploy must **queue**, not race or cancel the first. Pinned by `concurrency: backend-production` on the deploy job (Task 6).
-3. A push that changes only a workflow file → that workflow must still run. Pinned by listing the workflow file in its own `paths` (Tasks 2, 3).
-4. The deploy job never checks out the repo → a job-wide `working-directory` would fail with "no such directory". Pinned by scoping `defaults.run.working-directory` to the `test` job only (Tasks 2, 6).
-6. A `deploy` job that exists before its secrets do → every push to `main` goes red. Pinned by the task order: Task 6 is added only after Task 5 has set the secret and variable.
-7. A Dependabot PR triggers the backend workflow → the `deploy` job must not run (no secrets on PR runs, and nothing should ship from a PR). Pinned by `if: github.event_name == 'push'` (Task 7).
-5. Backend Dockerfile breaks → must fail in Actions before the deploy job runs, not on DigitalOcean. Pinned by `docker build .` in the test job (Task 2).
+| # | If this happens… | …then CI must | Pinned by | Task |
+|---|---|---|---|---|
+| 1 | `pyproject.toml` edited without re-locking | **fail**, not quietly install something else | `uv sync --locked` | 2 |
+| 2 | Two pushes to `main` minutes apart | **queue** the second deploy, not race or cancel the first | `concurrency: backend-production` on the deploy job | 6 |
+| 3 | A push changes only a workflow file | still run that workflow | the workflow file listed in its own `paths` | 2, 3 |
+| 4 | The deploy job never checks out the repo | not fail with "no such directory" | `defaults.run.working-directory` scoped to the `test` job only | 2, 6 |
+| 5 | Backend Dockerfile breaks | fail in Actions before the deploy job, not on DigitalOcean | `docker build .` in the test job | 2 |
+| 6 | A `deploy` job exists before its secrets do | not go red on every push | task order: Task 6 only after Task 5 sets the secret and variable | 5, 6 |
+| 7 | A Dependabot PR triggers the backend workflow | not run `deploy` (no secrets on PR runs; nothing ships from a PR) | `if: github.event_name == 'push'` | 7 |
 
 ## How to run this plan
 
-Tasks 1–4 are committed and pushed to `main` together. That push touches both app folders, so it is itself the proof that Tasks 2 and 3 work. Then Task 5 (first deploy) is run by hand. Then Task 6 is one more commit to `main`, verified by that push. Task 7 (Dependabot) can go any time after Task 3.
+- ✅ Tasks 1–4: committed and pushed to `main` together.
+  - That push touched both app folders, so it proved Tasks 2 and 3 work.
+- 🔴 Task 5: run by hand.
+- 🔒 Task 6: one more commit to `main`, verified by that push.
+- 🔵 Task 7: any time after Task 3.
 
 ---
 
-### Task 1: Make black and flake8 pass (backend)
+## ✅ Task 1: Make black and flake8 pass (backend)
 
-**Files:**
+![](https://img.shields.io/badge/TASK_1-DONE-2ea44f?style=for-the-badge) 🟩🟩🟩🟩🟩🟩🟩 **7/7** · commit `6ae894a` · 2026-11-08
+
+**Files**
+
 - Create: `apartment-review-fastapi/.flake8`
-- Modify: [database.py](apartment-review-fastapi/database.py), [example_endpoints.py](apartment-review-fastapi/example_endpoints.py), [schemas.py](apartment-review-fastapi/schemas.py), [utils.py](apartment-review-fastapi/utils.py) (by hand), plus whatever `black` reformats ([main.py](apartment-review-fastapi/main.py), [models.py](apartment-review-fastapi/models.py) and the four above)
+- Edit by hand: [database.py](apartment-review-fastapi/database.py), [example_endpoints.py](apartment-review-fastapi/example_endpoints.py), [schemas.py](apartment-review-fastapi/schemas.py), [utils.py](apartment-review-fastapi/utils.py)
+- Reformatted by black: [main.py](apartment-review-fastapi/main.py), [models.py](apartment-review-fastapi/models.py) and the four above
 
-**Interfaces:** produces a backend where `uv run black --check .`, `uv run flake8 .` and `uv run pytest` all exit 0. Task 2 relies on that.
+**Interfaces**
 
-- [x] **Step 1: Add the flake8 config** (black uses 88-column lines; flake8 defaults to 79 and scans `.venv`)
+- Result: `uv run black --check .`, `uv run flake8 .` and `uv run pytest` all exit 0.
+- Task 2 relies on that.
 
-Create `apartment-review-fastapi/.flake8`:
+- [x] ✅ **Step 1: Add the flake8 config**
+  - Why: black uses 88-column lines; flake8 defaults to 79 and scans `.venv`.
+  - Create `apartment-review-fastapi/.flake8`:
 
 ```ini
 [flake8]
@@ -116,17 +229,16 @@ extend-ignore = E203,W503
 exclude = .venv
 ```
 
-`E203`/`W503` are the two rules black deliberately breaks (whitespace before `:` in slices, line breaks before operators).
+- `E203`/`W503`: the two rules black deliberately breaks (whitespace before `:` in slices, line breaks before operators).
 
-- [x] **Step 2: Let black reformat**
+- [x] ✅ **Step 2: Let black reformat**
+  - Run: `cd apartment-review-fastapi && uv run black .`
+  - Expected: `6 files reformatted, 3 files left unchanged.`
+  - Formatting only; nothing behavioural.
 
-Run: `cd apartment-review-fastapi && uv run black .`
-Expected: `6 files reformatted, 3 files left unchanged.` Formatting only; nothing behavioural.
-
-- [x] **Step 3: See what flake8 still wants**
-
-Run: `uv run flake8 .`
-Expected exactly these 10 (line numbers are after black):
+- [x] ✅ **Step 3: See what flake8 still wants**
+  - Run: `uv run flake8 .`
+  - Expected: exactly these 10 (line numbers are after black):
 
 ```
 ./database.py:3:1: F401 'sqlmodel.SQLModel' imported but unused
@@ -141,11 +253,10 @@ Expected exactly these 10 (line numbers are after black):
 ./utils.py:20:89: E501 line too long (90 > 88 characters)
 ```
 
-(`example_endpoints.py` is not imported by anything, so removing its unused imports changes nothing at runtime.)
+- `example_endpoints.py` is not imported by anything, so removing its unused imports changes nothing at runtime.
 
-- [x] **Step 4: Remove the 8 unused imports**
-
-`database.py` — delete line 3:
+- [x] ✅ **Step 4: Remove the 8 unused imports**
+  - `database.py` — delete line 3:
 
 ```python
 from sqlalchemy import create_engine
@@ -155,7 +266,7 @@ from sqlmodel import SQLModel          # ← delete this line
 from config import database_url
 ```
 
-`example_endpoints.py` — the import block becomes:
+- `example_endpoints.py` — the import block becomes:
 
 ```python
 from typing import List
@@ -178,23 +289,21 @@ from utils import (
 )
 ```
 
-(removed: `from datetime import datetime`; `Apartment, User` from the models line; `ApartmentCreate,`; `calculate_apartment_average_rating,`)
-
-`schemas.py` line 1:
+- Removed: `from datetime import datetime`; `Apartment, User` from the models line; `ApartmentCreate,`; `calculate_apartment_average_rating,`.
+- `schemas.py` line 1:
 
 ```python
 from pydantic import BaseModel, Field
 ```
 
-`utils.py` line 4:
+- `utils.py` line 4:
 
 ```python
 from schemas import OSMAddressData
 ```
 
-- [x] **Step 5: Wrap the 2 long lines**
-
-`example_endpoints.py`, inside `create_review` (the only `HTTP_409_CONFLICT` in the file):
+- [x] ✅ **Step 5: Wrap the 2 long lines**
+  - `example_endpoints.py`, inside `create_review` (the only `HTTP_409_CONFLICT` in the file):
 
 ```python
         raise HTTPException(
@@ -204,7 +313,7 @@ from schemas import OSMAddressData
         )
 ```
 
-`utils.py`, the `get_or_create_apartment` docstring:
+- `utils.py`, the `get_or_create_apartment` docstring:
 
 ```python
     Returns:
@@ -213,25 +322,30 @@ from schemas import OSMAddressData
     """
 ```
 
-- [x] **Step 6: Verify all three are green**
+- [x] ✅ **Step 6: Verify all three are green**
+  - Run: `uv run black --check . && uv run flake8 . && uv run pytest -q`
+  - Expected: `All done!`, no flake8 output, `4 passed`.
+  - If black wants to re-wrap the two edited lines: `uv run black .` once more, then re-run the check.
 
-Run: `uv run black --check . && uv run flake8 . && uv run pytest -q`
-Expected: `All done!`, no flake8 output, `4 passed`. If black wants to re-wrap the two edited lines, run `uv run black .` once more and re-run the check.
-
-- [x] **Step 7: Commit** — `6ae894a`, pushed 2026-11-08
-
-Message: `make black and flake8 pass`
+- [x] ✅ **Step 7: Commit** — `6ae894a`, pushed 2026-11-08
+  - Message: `make black and flake8 pass`
 
 ---
 
-### Task 2: Backend CI workflow
+## ✅ Task 2: Backend CI workflow
 
-**Files:**
+![](https://img.shields.io/badge/TASK_2-DONE-2ea44f?style=for-the-badge) 🟩🟩🟩🟩 **4/4** · commit `2107b48` · 2026-11-08
+
+**Files**
+
 - Create: `.github/workflows/backend.yml`
 
-**Interfaces:** produces a job named `test` that Task 6's `deploy` job will depend on via `needs: test`. The job name must stay `test`.
+**Interfaces**
 
-- [x] **Step 1: Write the workflow**
+- Produces a job named `test`.
+- Task 6's `deploy` job depends on it via `needs: test`. The job name must stay `test`.
+
+- [x] ✅ **Step 1: Write the workflow**
 
 ```yaml
 name: backend
@@ -260,34 +374,48 @@ jobs:
 ```
 
 What each line is for:
-- `paths` — run only when the backend (or this file) changes.
-- `setup-uv` — installs uv; on GitHub-hosted runners it caches `~/.cache/uv` keyed on `uv.lock` by default. `uv sync` then reads [.python-version](apartment-review-fastapi/.python-version) and downloads Python 3.10 itself, so no separate Python setup step.
-- `uv sync --locked` — install exactly what `uv.lock` says, and **fail** if `pyproject.toml` and `uv.lock` disagree (review focus 1). The dev group (pytest, black, flake8) is installed by default.
-- `docker build .` — the same build DigitalOcean will run; catches a broken Dockerfile before the deploy job (review focus 5). Adds ~1–2 min.
 
-- [x] **Step 2: Check the YAML parses locally**
+- `paths`: run only when the backend (or this file) changes.
+- `setup-uv`: installs uv.
+  - Caches `~/.cache/uv` keyed on `uv.lock` by default on GitHub-hosted runners.
+  - `uv sync` reads [.python-version](apartment-review-fastapi/.python-version) and downloads Python 3.10 itself. No separate Python setup step.
+- `uv sync --locked`: install exactly what `uv.lock` says.
+  - **Fails** if `pyproject.toml` and `uv.lock` disagree (review focus 1).
+  - The dev group (pytest, black, flake8) is installed by default.
+- `docker build .`: the same build DigitalOcean will run.
+  - Catches a broken Dockerfile before the deploy job (review focus 5).
+  - Adds ~1–2 min.
 
-Run: `python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/backend.yml')); print('ok')"`
-Expected: `ok` (if `yaml` is missing: `uv run --with pyyaml python -c ...`).
+- [x] ✅ **Step 2: Check the YAML parses locally**
+  - Run: `python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/backend.yml')); print('ok')"`
+  - Expected: `ok`
+  - If `yaml` is missing: `uv run --with pyyaml python -c ...`
 
-- [x] **Step 3: Commit** — `2107b48`, pushed 2026-11-08
+- [x] ✅ **Step 3: Commit** — `2107b48`, pushed 2026-11-08
+  - Message: `add backend CI workflow`
 
-Message: `add backend CI workflow`
-
-- [ ] **Step 4: Verify on GitHub (after Tasks 1–4 are pushed to `main`)** — first run 42473923633 failed in 6 s: `setup-uv@v10` does not exist. Fixed to `@v10.3.3` in the working tree; re-verify after that is pushed.
-
-GitHub → Actions → `backend` → the run for your push → `test` is green. First run ~3 min (no cache yet).
+- [x] ✅ **Step 4: Verify on GitHub**
+  - GitHub → Actions → `backend` → the run for your push → `test` is green.
+  - First run ~3 min (no cache yet).
+  - What happened: run 42473923633 failed in 6 s because `setup-uv@v10` does not exist.
+  - After the pin to `@v10.3.3` (`08628ba`): runs 42476163103 and 42476589204 green in ~50 s.
 
 ---
 
-### Task 3: Frontend CI workflow
+## ✅ Task 3: Frontend CI workflow
 
-**Files:**
+![](https://img.shields.io/badge/TASK_3-DONE-2ea44f?style=for-the-badge) 🟩🟩🟩🟩 **4/4** · commit `91ae7b3` · 2026-11-08
+
+**Files**
+
 - Create: `.github/workflows/frontend.yml`
 
-**Interfaces:** none downstream. Cloudflare Pages builds and deploys `main` on its own; this workflow only reports whether the tests and build pass (decision 4).
+**Interfaces**
 
-- [x] **Step 1: Write the workflow**
+- None downstream.
+- Cloudflare Pages builds and deploys `main` on its own; this workflow only reports whether the tests and build pass (decision 4).
+
+- [x] ✅ **Step 1: Write the workflow**
 
 ```yaml
 name: frontend
@@ -317,29 +445,37 @@ jobs:
       - run: npm run build
 ```
 
-`npm test` is `vitest run`: executes every `*.spec.ts` under `src/` once (no watch mode) and exits 1 on a failing test. `npm run build` is `run-p type-check "build-only {@}"` in [package.json](apartment-review-vue/package.json): `vue-tsc --build` and `vite build` in parallel, so a type error fails the job.
+- `npm test` = `vitest run`: runs every `*.spec.ts` under `src/` once (no watch mode); exits 1 on a failing test.
+- `npm run build` = `run-p type-check "build-only {@}"` ([package.json](apartment-review-vue/package.json)): `vue-tsc --build` and `vite build` in parallel, so a type error fails the job.
 
-- [x] **Step 2: Check the YAML parses locally**
+- [x] ✅ **Step 2: Check the YAML parses locally**
+  - Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/frontend.yml')); print('ok')"`
+  - Expected: `ok`
 
-Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/frontend.yml')); print('ok')"`
-Expected: `ok`
+- [x] ✅ **Step 3: Commit** — `91ae7b3`, pushed 2026-11-08
+  - Message: `add frontend CI workflow`
 
-- [x] **Step 3: Commit** — `91ae7b3`, pushed 2026-11-08
-
-Message: `add frontend CI workflow`
-
-- [x] **Step 4: Verify on GitHub** — run 42473923612 green in 22 s on 2026-11-08
-
-The Tasks 1–4 push changes files under `apartment-review-vue/`, so `frontend / build` runs on it. Expected: green, ~1 min.
+- [x] ✅ **Step 4: Verify on GitHub**
+  - The Tasks 1–4 push changed files under `apartment-review-vue/`, so `frontend / build` ran on it.
+  - Expected: green, ~1 min.
+  - What happened: run 42473923612 green in 22 s on 2026-11-08.
 
 ---
 
-### Task 4: Pulumi: fix the project file, point at the monorepo, let CI trigger backend deploys
+## ✅ Task 4: Pulumi: fix the project file, point at the monorepo, let CI trigger backend deploys
 
-**Files:**
-- Modify: [Pulumi.yaml](infra/Pulumi.yaml), [Pulumi.dev.yaml](infra/Pulumi.dev.yaml), [index.ts](infra/index.ts), [infra/README.md](infra/README.md), [apartment-review-fastapi/README.md](apartment-review-fastapi/README.md), [apartment-review-vue/README.md](apartment-review-vue/README.md)
+![](https://img.shields.io/badge/TASK_4-DONE-2ea44f?style=for-the-badge) 🟩🟩🟩🟩🟩🟩🟩🟩🟩 **9/9** · commit `57898f4` · 2026-11-08
 
-**Interfaces:** produces a new stack output `backendAppId` (DigitalOcean's generated id for the app). Task 5 copies it into the GitHub variable `DO_APP_ID`, which Task 6's workflow reads.
+**Files**
+
+- Modify: [Pulumi.yaml](infra/Pulumi.yaml), [Pulumi.dev.yaml](infra/Pulumi.dev.yaml), [index.ts](infra/index.ts)
+- Modify: [infra/README.md](infra/README.md), [apartment-review-fastapi/README.md](apartment-review-fastapi/README.md), [apartment-review-vue/README.md](apartment-review-vue/README.md)
+
+**Interfaces**
+
+- Produces a new stack output `backendAppId` (DigitalOcean's generated id for the app).
+- Task 5 copies it into the GitHub variable `DO_APP_ID`.
+- Task 6's workflow reads that variable.
 
 Which values are ours vs assigned by the outside system:
 
@@ -352,9 +488,11 @@ Which values are ours vs assigned by the outside system:
 | `repoName: "apartment-review"` | ours, must match GitHub | the monorepo's name |
 | `backendApp.id` → output `backendAppId` | **DigitalOcean-generated** | a UUID-like id; not renameable |
 
-- [x] **Step 1: Fix the project file so Pulumi can load it**
-
-Delete lines 4–8 of `Pulumi.yaml` (the `config:` block). Project-level config entries with a provider prefix like `cloudflare:apiToken` need a `value:`, which these never had, and the README already sets them with `pulumi config set --secret` into the stack file instead. File becomes:
+- [x] ✅ **Step 1: Fix the project file so Pulumi can load it**
+  - Delete lines 4–8 of `Pulumi.yaml` (the `config:` block).
+  - Why: project-level config entries with a provider prefix like `cloudflare:apiToken` need a `value:`, which these never had.
+  - The README already sets them with `pulumi config set --secret` into the stack file instead.
+  - File becomes:
 
 ```yaml
 name: apartment-review-infra
@@ -362,12 +500,13 @@ runtime: nodejs
 description: Cloudflare Pages (frontend) + DigitalOcean App Platform (backend) + Neon (Postgres) for apartment-review
 ```
 
-Run: `cd infra && pulumi stack ls`
-Expected: an empty table with the header `NAME  LAST UPDATE  RESOURCE COUNT` (no error).
+- Run: `cd infra && pulumi stack ls`
+- Expected: an empty table with the header `NAME  LAST UPDATE  RESOURCE COUNT` (no error).
 
-- [x] **Step 2: One repo, one branch in the stack config**
-
-After the monorepo move, `backendRepo`/`frontendRepo` (and the two branch keys) must always be equal, so keeping both is a mistake waiting to happen. `Pulumi.dev.yaml` becomes:
+- [x] ✅ **Step 2: One repo, one branch in the stack config**
+  - After the monorepo move, `backendRepo`/`frontendRepo` (and the two branch keys) must always be equal.
+  - Keeping both is a mistake waiting to happen, so one key each.
+  - `Pulumi.dev.yaml` becomes:
 
 ```yaml
 config:
@@ -380,7 +519,7 @@ config:
   doInstanceSize: "apps-s-1vcpu-0.5gb"
 ```
 
-- [x] **Step 3: Same in `index.ts`, lines 12–17**
+- [x] ✅ **Step 3: Same in `index.ts`, lines 12–17**
 
 ```ts
 // --- repo / branch locations -------------------------------------------------
@@ -389,9 +528,8 @@ const githubRepo = cfg.get("githubRepo") ?? "apartment-review";
 const branch = cfg.get("branch") ?? "main";
 ```
 
-- [x] **Step 4: DigitalOcean service: build from the subfolder, stop auto-deploying**
-
-`index.ts`, inside `services: [ { ... } ]` (currently lines 76–83):
+- [x] ✅ **Step 4: DigitalOcean service: build from the subfolder, stop auto-deploying**
+  - `index.ts`, inside `services: [ { ... } ]`:
 
 ```ts
       {
@@ -406,14 +544,13 @@ const branch = cfg.get("branch") ?? "main";
         httpPort: 8000,
 ```
 
-- [x] **Step 5: Cloudflare Pages: build from the subfolder**
-
-`index.ts`, the `PagesProject` block (currently lines 108–124):
+- [x] ✅ **Step 5: Cloudflare Pages: build from the subfolder**
+  - `index.ts`, the `PagesProject` block:
 
 ```ts
 const frontendProject = new cloudflare.PagesProject("apartment-review-frontend", {
   accountId: cloudflareAccountId,
-  name: "apartment-review",
+  name: pagesProjectName,
   productionBranch: branch,
   buildConfig: {
     buildCommand: "npm run build",
@@ -431,9 +568,8 @@ const frontendProject = new cloudflare.PagesProject("apartment-review-frontend",
   },
 ```
 
-- [x] **Step 6: Export the app id for CI**
-
-`index.ts` outputs (currently lines 139–141):
+- [x] ✅ **Step 6: Export the app id for CI**
+  - `index.ts` outputs:
 
 ```ts
 export const backendUrl = backendApp.liveUrl;
@@ -442,9 +578,8 @@ export const frontendUrl = frontendProject.domains;
 export const databaseConnectionString = databaseUrl;
 ```
 
-- [x] **Step 7: Type-check the program**
-
-The Neon SDK is generated locally (no npm package), so run the README's install first:
+- [x] ✅ **Step 7: Type-check the program**
+  - The Neon SDK is generated locally (no npm package), so run the README's install first:
 
 ```bash
 cd infra
@@ -453,13 +588,14 @@ pulumi package add terraform-provider kislerdm/neon   # writes infra/sdks/neon a
 npm run build                                          # tsc --noEmit
 ```
 
-Expected: no TypeScript errors. Commit the `sdks/neon/*.ts` source and the `package.json` change (the SDK's `node_modules/` and `bin/` are ignored; 66 MB of generated files). On a fresh clone run `pulumi package add terraform-provider kislerdm/neon` before `npm install`, since `package.json` points at `file:sdks/neon`.
+- Expected: no TypeScript errors.
+- Commit the `sdks/neon/*.ts` source and the `package.json` change.
+- The SDK's `node_modules/` and `bin/` are ignored (66 MB of generated files).
+- Fresh clone: run `pulumi package add terraform-provider kislerdm/neon` before `npm install`, since `package.json` points at `file:sdks/neon`.
 
-- [x] **Step 8: Fix the three README sentences that are now false**
-
-[infra/README.md:26](infra/README.md#L26): in "grant it access to apartment-review-fastapi", change the repo name to `apartment-review`.
-
-[apartment-review-fastapi/README.md:46-47](apartment-review-fastapi/README.md#L46-L47), replace from "the Pulumi stack targets" to the end of the sentence with:
+- [x] ✅ **Step 8: Fix the three README sentences that are now false**
+  - [infra/README.md:26](infra/README.md#L26): in "grant it access to apartment-review-fastapi", change the repo name to `apartment-review`.
+  - [apartment-review-fastapi/README.md:46-47](apartment-review-fastapi/README.md#L46-L47): replace from "the Pulumi stack targets" to the end of the sentence with:
 
 ```
 the Pulumi stack targets this folder of `tom-leon/apartment-review` (`main` branch), and
@@ -467,7 +603,7 @@ GitHub Actions asks DigitalOcean to redeploy after the backend tests pass
 (`.github/workflows/backend.yml`).
 ```
 
-[apartment-review-vue/README.md:13-14](apartment-review-vue/README.md#L13-L14), replace the two lines with:
+- [apartment-review-vue/README.md:13-14](apartment-review-vue/README.md#L13-L14): replace the two lines with:
 
 ```
 Cloudflare Pages builds this folder directly (root directory `apartment-review-vue`, `npm run build`,
@@ -475,17 +611,38 @@ serving `dist/`). The API (`apartment-review-fastapi/`) is deployed to DigitalOc
 by GitHub Actions after its tests pass.
 ```
 
-- [x] **Step 9: Commit** — `57898f4`, pushed 2026-11-08
-
-Message: `point infra at the monorepo and let CI trigger backend deploys`
+- [x] ✅ **Step 9: Commit** — `57898f4`, pushed 2026-11-08
+  - Message: `point infra at the monorepo and let CI trigger backend deploys`
 
 ---
 
-### Task 5: First production deploy (run by hand; each cloud step is a write)
+## 🔴 Task 5: First production deploy (manual; each cloud step is a write)
 
-Nothing exists yet in Pulumi Cloud, DigitalOcean, Cloudflare or Neon for this project. This is the one-time runbook; the agent does not run these.
+![](https://img.shields.io/badge/TASK_5-NOT_STARTED-d73a49?style=for-the-badge) ⬜⬜⬜⬜⬜⬜ **0/6** · run by hand from `infra/`
 
-- [ ] **Step 1: Create the stack and set the config** (from `infra`)
+> [!CAUTION]
+> **Manual only.**
+> - Nothing exists yet in Pulumi Cloud, DigitalOcean, Cloudflare or Neon for this project.
+> - Every step below creates or changes something in a cloud account.
+> - Each one is a deliberate manual action. None of it is automated from this plan.
+
+**Produces**
+
+- A live backend URL.
+- A live frontend URL.
+- A Neon database.
+- The secret `DIGITALOCEAN_ACCESS_TOKEN` and the variable `DO_APP_ID`. These two unblock Task 6.
+
+**Prerequisites: where the five config values come from** (dashboards, once; not steps, nothing is created yet)
+
+- Neon has no GitHub app to authorise. Pulumi creates the project and database through its API, so Neon only needs these two values:
+  - **Neon org id:** console → switch to the organisation → Settings → General information → *Organization ID* (`org-…`).
+  - **Neon API key:** console → Account settings → API keys → Create → copy it now (shown once). An organisation key (Organization → Settings → API keys) also works; admins only.
+- **Cloudflare account id:** dashboard → Workers & Pages → overview → Account details → copy *Account ID*.
+- **Cloudflare API token:** My Profile → API Tokens → Create Token → Custom token → permissions `Account · Cloudflare Pages · Edit` and `Account · Account Settings · Read` → Account resources: your account → copy it now (shown once).
+- **DigitalOcean token for Pulumi:** API → Tokens → Generate New Token → Full Access → copy it now (shown once). The narrower CI token is a separate token, made in step 5.
+
+- [ ] 🔲 **Step 1: Create the stack and set the config** (from `infra`)
 
 ```bash
 pulumi stack init dev
@@ -496,50 +653,66 @@ pulumi config set --secret cloudflare:apiToken <Cloudflare token: Cloudflare Pag
 pulumi config set --secret neonApiKey <Neon API key>
 ```
 
-- [ ] **Step 2: Authorise the two GitHub apps on the monorepo** (dashboard, once)
+- [ ] 🔲 **Step 2: Authorise the two GitHub apps on the monorepo** (dashboard, once)
+  - DigitalOcean: Apps → Create App → GitHub → authorise → grant access to `tom-leon/apartment-review` → cancel the wizard.
+  - Cloudflare: Workers & Pages → Create → Pages → Connect to Git → authorise the same repo → cancel.
 
-DigitalOcean: Apps → Create App → GitHub → authorise → grant access to `tom-leon/apartment-review` → cancel the wizard. Cloudflare: Workers & Pages → Create → Pages → Connect to Git → authorise the same repo → cancel.
-
-- [ ] **Step 3: Preview, then create everything**
+- [ ] 🔲 **Step 3: Preview, then create everything**
 
 ```bash
 pulumi preview   # expect 6 to create: stack, Neon provider, Neon project, Neon database, DigitalOcean app, Cloudflare Pages project
 pulumi up
 ```
 
-Creating the app starts its first deployment even with `deployOnPush: false`. Creating the Pages project with a Git source starts its first build; if it doesn't, push any commit to `main`.
+- Creating the app starts its first deployment even with `deployOnPush: false`.
+- Creating the Pages project with a Git source starts its first build. If it doesn't, push any commit to `main`.
 
-- [ ] **Step 4: Smoke-test**
+- [ ] 🔲 **Step 4: Smoke-test**
 
 ```bash
 curl -s "$(pulumi stack output backendUrl)/"
 ```
 
-Expected: `{"status":"healthy","message":"API is running"}` (the `/` route in [main.py](apartment-review-fastapi/main.py)). Then open `pulumi stack output frontendUrl` in a browser: the Vue app renders. (It can't talk to the API yet — see *Found while planning*.)
+- Expected: `{"status":"healthy","message":"API is running"}` (the `/` route in [main.py](apartment-review-fastapi/main.py)).
+- Then open `pulumi stack output frontendUrl` in a browser: the Vue app renders.
+- CORS and the API base URL are wired now. The list route itself is still missing (see *Found while planning*).
 
-- [ ] **Step 5: Give CI a narrowly scoped DigitalOcean token**
-
-DigitalOcean → API → Generate New Token → Custom Scopes → `app:read` + `app:update` (what "create deployment" and `--wait` polling need; scopes can't be edited after creation). Then:
+- [ ] 🔲 **Step 5: Give CI a narrowly scoped DigitalOcean token**
+  - DigitalOcean → API → Generate New Token → Custom Scopes → `app:read` + `app:update`.
+  - Those are what "create deployment" and `--wait` polling need. Scopes can't be edited after creation.
+  - Then:
 
 ```bash
 gh secret set DIGITALOCEAN_ACCESS_TOKEN -R tom-leon/apartment-review          # paste the token
 gh variable set DO_APP_ID -R tom-leon/apartment-review --body "$(pulumi stack output backendAppId)"
 ```
 
-- [ ] **Step 6 (optional): stop Cloudflare rebuilding on backend-only pushes**
+- [ ] 🔲 **Step 6 (optional): stop Cloudflare rebuilding on backend-only pushes**
+  - Cloudflare dashboard → the Pages project → Settings → Build → Build watch paths → Include `apartment-review-vue/*`.
+  - Not settable from the Pulumi v5 provider.
+  - Saves builds against the 500/month free quota. Harmless to skip.
 
-Cloudflare dashboard → the Pages project → Settings → Build → Build watch paths → Include `apartment-review-vue/*`. Not settable from the Pulumi v5 provider. Saves builds against the 500/month free quota; harmless to skip.
+🔒 **Task 6 stays blocked until step 5 here is done.**
 
 ---
 
-### Task 6: Backend deploy job
+## 🔒 Task 6: Backend deploy job
 
-**Files:**
+![](https://img.shields.io/badge/TASK_6-BLOCKED-8b949e?style=for-the-badge) ⬜⬜⬜⬜ **0/4** · blocked until Task 5 step 5
+
+> [!WARNING]
+> Do not add this job before the secret and variable exist, or every push to `main` goes red (review focus 6).
+
+**Files**
+
 - Modify: `.github/workflows/backend.yml` (from Task 2)
 
-**Interfaces:** consumes job `test` (Task 2), secret `DIGITALOCEAN_ACCESS_TOKEN` and variable `DO_APP_ID` (Task 5).
+**Interfaces**
 
-- [ ] **Step 1: Add the deploy job** at the end of `jobs:` in `backend.yml`
+- Consumes job `test` (Task 2).
+- Consumes secret `DIGITALOCEAN_ACCESS_TOKEN` and variable `DO_APP_ID` (Task 5).
+
+- [ ] 🔲 **Step 1: Add the deploy job** at the end of `jobs:` in `backend.yml`
 
 ```yaml
   deploy:
@@ -553,38 +726,50 @@ Cloudflare dashboard → the Pages project → Settings → Build → Build watc
       - run: doctl apps create-deployment ${{ vars.DO_APP_ID }} --wait
 ```
 
-- `concurrency: backend-production` — a second push waits for the first deploy to finish instead of racing it (review focus 2).
-- No `checkout` and no `working-directory` here: the job only talks to DigitalOcean (review focus 4).
-- `create-deployment` tells DigitalOcean to rebuild from the current head of `main`; `--wait` makes the job fail if the deployment fails, so a bad deploy shows up red in Actions.
+- `concurrency: backend-production`: a second push waits for the first deploy to finish instead of racing it (review focus 2).
+- No `checkout` and no `working-directory`: the job only talks to DigitalOcean (review focus 4).
+- `create-deployment`: tells DigitalOcean to rebuild from the current head of `main`.
+- `--wait`: the job fails if the deployment fails, so a bad deploy shows up red in Actions.
 
-- [ ] **Step 2: Check the YAML parses locally**
+- [ ] 🔲 **Step 2: Check the YAML parses locally**
+  - Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/backend.yml')); print('ok')"`
+  - Expected: `ok`
 
-Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/backend.yml')); print('ok')"`
-Expected: `ok`
+- [ ] 🔲 **Step 3: Commit and push to `main`**
+  - Message: `deploy backend from CI after tests pass`
 
-- [ ] **Step 3: Commit and push to `main`**
+- [ ] 🔲 **Step 4: Verify end to end**
+  - The push changes `backend.yml`, so the workflow runs.
+  - Actions → `backend` → `test` green, then `deploy` green with `doctl` printing the deployment reaching `ACTIVE`.
+  - DigitalOcean → the app → Deployments shows a new deployment whose source is the API, not a Git push.
+  - Re-run the Task 5 `curl`.
 
-Message: `deploy backend from CI after tests pass`
+**Rollback, if ever needed**
 
-- [ ] **Step 4: Verify end to end**
-
-The push changes `backend.yml`, so the workflow runs. Actions → `backend` → `test` green, then `deploy` green with `doctl` printing the deployment reaching `ACTIVE`. DigitalOcean → the app → Deployments shows a new deployment whose source is the API, not a Git push. Re-run the Task 5 `curl`.
-
-Rollback, if ever needed: DigitalOcean → Deployments → pick the previous one → Rollback. Cloudflare → the Pages project → Deployments → previous → Rollback to this deployment.
+- DigitalOcean → Deployments → pick the previous one → Rollback.
+- Cloudflare → the Pages project → Deployments → previous → Rollback to this deployment.
 
 ---
 
-### Task 7: Dependabot
+## 🔵 Task 7: Dependabot
 
-Dependabot is GitHub's free bot that opens a pull request whenever one of your dependencies has a new version or a security fix. It only works through PRs, so this is the one place PRs come back: Dependabot opens one, CI tests it, you merge it or close it.
+![](https://img.shields.io/badge/TASK_7-READY-0969da?style=for-the-badge) ⬜⬜⬜⬜⬜⬜ **0/6** · can be done any time after Task 3
 
-**Files:**
+- Dependabot is GitHub's free bot. It opens a pull request whenever a dependency has a new version or a security fix.
+- It only works through PRs, so this is the one place PRs come back.
+- Dependabot opens one, CI tests it, you merge it or close it.
+
+**Files**
+
 - Create: `.github/dependabot.yml`
 - Modify: `.github/workflows/backend.yml`, `.github/workflows/frontend.yml` (from Tasks 2, 3, 6)
 
-**Interfaces:** the workflows must also run on `pull_request` so Dependabot's PRs get tested, and the backend `deploy` job must not run on those PRs.
+**Interfaces**
 
-- [ ] **Step 1: Write the Dependabot config**
+- The workflows must also run on `pull_request` so Dependabot's PRs get tested.
+- The backend `deploy` job must not run on those PRs.
+
+- [ ] 🔲 **Step 1: Write the Dependabot config**
 
 ```yaml
 version: 2
@@ -603,11 +788,11 @@ updates:
       interval: weekly
 ```
 
-The third entry bumps the `@v7`/`@v10` pins in the workflows themselves. Weekly keeps it to one batch of PRs on a Monday rather than a trickle.
+- The third entry bumps the `@v7`/`@v10.3.3` pins in the workflows themselves.
+- Weekly keeps it to one batch of PRs on a Monday rather than a trickle.
 
-- [ ] **Step 2: Let both workflows run on pull requests too**
-
-In both `backend.yml` and `frontend.yml`, the `on:` block becomes (same `paths` as before):
+- [ ] 🔲 **Step 2: Let both workflows run on pull requests too**
+  - In both `backend.yml` and `frontend.yml`, the `on:` block becomes (same `paths` as before):
 
 ```yaml
 on:
@@ -622,11 +807,10 @@ on:
       - ".github/workflows/backend.yml"
 ```
 
-(frontend: the `apartment-review-vue/**` and `frontend.yml` paths.)
+- Frontend: the `apartment-review-vue/**` and `frontend.yml` paths.
 
-- [ ] **Step 3: Keep the deploy job off PRs**
-
-In `backend.yml`, add one line to the `deploy` job so it only runs for pushes to `main`, never for a PR:
+- [ ] 🔲 **Step 3: Keep the deploy job off PRs**
+  - In `backend.yml`, add one line to the `deploy` job so it only runs for pushes to `main`, never for a PR:
 
 ```yaml
   deploy:
@@ -635,31 +819,54 @@ In `backend.yml`, add one line to the `deploy` job so it only runs for pushes to
     runs-on: ubuntu-latest
 ```
 
-Dependabot PR runs also don't get repository secrets, so without this line the deploy step would fail on every bump anyway.
+- Dependabot PR runs also don't get repository secrets. Without this line the deploy step would fail on every bump anyway.
 
-- [ ] **Step 4: Check the YAML parses**
+- [ ] 🔲 **Step 4: Check the YAML parses**
+  - Run: `for f in .github/dependabot.yml .github/workflows/*.yml; do python3 -c "import yaml,sys; yaml.safe_load(open('$f'))" && echo "ok $f"; done`
+  - Expected: `ok` three times.
 
-Run: `for f in .github/dependabot.yml .github/workflows/*.yml; do python3 -c "import yaml,sys; yaml.safe_load(open('$f'))" && echo "ok $f"; done`
-Expected: `ok` three times.
+- [ ] 🔲 **Step 5: Commit and push to `main`**
+  - Message: `add dependabot for npm, uv and github actions`
 
-- [ ] **Step 5: Commit and push to `main`**
-
-Message: `add dependabot for npm, uv and github actions`
-
-- [ ] **Step 6: Verify**
-
-GitHub → Insights → Dependency graph → Dependabot shows the three ecosystems with "last checked" times. Within a day the first PRs appear; each one shows the `backend` or `frontend` check. Merge a green one with `gh pr merge <number> --squash --delete-branch`; the resulting push to `main` runs the deploy job as normal.
+- [ ] 🔲 **Step 6: Verify**
+  - GitHub → Insights → Dependency graph → Dependabot shows the three ecosystems with "last checked" times.
+  - Within a day the first PRs appear; each one shows the `backend` or `frontend` check.
+  - Merge a green one with `gh pr merge <number> --squash --delete-branch`.
+  - The resulting push to `main` runs the deploy job as normal.
 
 ---
 
 ## Found while planning, not in this plan
 
-One line each; say if you want any of them picked up.
+✅ = done since · 🔲 = still open.
 
-- **The Dockerfile ignores `uv.lock`.** It runs `uv pip install --system -e .`, which resolves fresh from `pyproject.toml`, so DigitalOcean can install different versions from the ones CI tested; it also breaks the repo's own "never `uv pip`" rule. Fix is `uv sync --locked --no-dev` and `CMD ["uv", "run", "uvicorn", ...]`. Worth doing right after this plan; it is what would push us towards option C otherwise.
-- **The app won't work end to end once deployed.** [apartment.ts](apartment-review-vue/src/stores/apartment.ts) calls `/api/apartments`, which the backend doesn't serve (its routes are `/user`, `/apartment`, `/`), and there is no CORS middleware. Both READMEs already list this; the smoke test above only covers `/`.
-- **Neon connection string likely points at the wrong database.** `neonProject.connectionUri` is the project's *default* database (`neondb`), while the program also creates `apartment_review`; tables will be created in `neondb` on first start. Unverified until the first deploy; check which database has tables.
-- **Postgres 18 locally, 16 on Neon** ([docker-compose.yml](apartment-review-vue/docker-compose.yml) vs [index.ts](infra/index.ts) `pgVersion: 16`).
-- **`deploymentsEnabled` is a deprecated field** in the Cloudflare provider; `productionDeploymentEnabled` + `previewDeploymentSetting` replace it. Left untouched because it still works.
-- **The two old repos** (`apartment-review-fastapi`, `apartment-review-vue`) are still live on GitHub. Archiving them avoids authorising the wrong one in Task 5.
-- [DOCKER_GUIDE.md](apartment-review-vue/DOCKER_GUIDE.md) still lists the old ports (the README already notes this).
+- 🔲 **The Dockerfile ignores `uv.lock`.**
+  - It runs `uv pip install --system -e .`, which resolves fresh from `pyproject.toml`.
+  - So DigitalOcean can install different versions from the ones CI tested.
+  - It also breaks the repo's own "never `uv pip`" rule.
+  - Fix: `uv sync --locked --no-dev` and `CMD ["uv", "run", "uvicorn", ...]`.
+  - Worth doing right after this plan. It is what would push us towards option C otherwise.
+- ✅ **CORS middleware** — done 2026-11-08 (`ce61742`).
+  - `CORS_ORIGINS` env var, allowed origins only, never `*`.
+  - Pulumi sets it on the DigitalOcean app to the Pages domain.
+- ✅ **Frontend reads `VITE_API_URL`** — done 2026-11-08 (`d424bee`).
+  - The store builds every request from it.
+  - `.env.development` sets it for `npm run dev`.
+- 🔲 **The list route still doesn't exist.**
+  - [apartment.ts](apartment-review-vue/src/stores/apartment.ts) calls `/api/apartments`; the backend serves `/user`, `/apartment`, `/`.
+  - Owned by the features plan. The Task 5 smoke test only covers `/`.
+- 🔲 **Neon connection string likely points at the wrong database.**
+  - `neonProject.connectionUri` is the project's *default* database (`neondb`).
+  - The program also creates `apartment_review`; tables will land in `neondb` on first start.
+  - Unverified until the first deploy. Check which database has tables.
+- 🔲 **Postgres 18 locally, 16 on Neon** ([docker-compose.yml](apartment-review-vue/docker-compose.yml) vs [index.ts](infra/index.ts) `pgVersion: 16`).
+- 🔲 **`deploymentsEnabled` is deprecated** in the Cloudflare provider.
+  - `productionDeploymentEnabled` + `previewDeploymentSetting` replace it.
+  - Left untouched because it still works.
+- 🔲 **The two old repos** (`apartment-review-fastapi`, `apartment-review-vue`) are still live on GitHub.
+  - Archiving them avoids authorising the wrong one in Task 5.
+- 🔲 [DOCKER_GUIDE.md](apartment-review-vue/DOCKER_GUIDE.md) still lists the old ports (the README already notes this).
+
+---
+
+*Legend:* 🟩 step done · ⬜ step open · ✅ done · 🔲 to do · 🔴 not started · 🔒 blocked · 🔵 ready. Update the progress block, the task badge and the bar every time a step flips.
