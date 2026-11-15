@@ -18,20 +18,20 @@
 
 **So what does login gate?** The things that are *about the user*: posting a review, editing it, voting "helpful", saving an apartment, reporting a review. That's the model of Yelp, Google Maps and Zillow, and it's the one that grows.
 
-**The cost of not doing this plan:** today the site can't show a single review to anyone. The "Post review" button logs to the browser console and throws the review away ([HomeView.vue:52](apartment-review-vue/src/views/HomeView.vue#L52)). There is nothing to lure anyone with, and nothing a visitor could ever come back to.
+**The cost of not doing this plan:** today the site can't show a single review to anyone. The "Post review" button logs to the browser console and throws the review away ([HomeView.vue:54](apartment-review-vue/src/views/HomeView.vue#L54)). There is nothing to lure anyone with, and nothing a visitor could ever come back to.
 
 ## What's true today (checked 2026-11-04)
 
 | Area | Fact | Evidence |
 |---|---|---|
-| Reading | No endpoint returns a review. The home page can list addresses but the fetch is commented out | [HomeView.vue:44](apartment-review-vue/src/views/HomeView.vue#L44), [main.py:38-50](apartment-review-fastapi/main.py#L38-L50) |
-| Writing | Modal collects address, optional unit number, 4 slider ratings (0–100), text; submit only console-logs | [CreateReviewModal.vue:38-53](apartment-review-vue/src/components/CreateReviewModal.vue#L38-L53), [HomeView.vue:52](apartment-review-vue/src/views/HomeView.vue#L52) |
+| Reading | Changed 2026-11-16: `GET /apartments/recent` lists apartments that have a published review, and the home page shows them as cards. Still no endpoint for one apartment or its reviews. The database has no reviews yet, so no card shows | [main.py:57-72](apartment-review-fastapi/main.py#L57-L72), [HomeView.vue:46](apartment-review-vue/src/views/HomeView.vue#L46) |
+| Writing | Modal collects address, optional unit number, 4 slider ratings (0–100), text; submit only console-logs | [CreateReviewModal.vue:38-53](apartment-review-vue/src/components/CreateReviewModal.vue#L38-L53), [HomeView.vue:54](apartment-review-vue/src/views/HomeView.vue#L54) |
 | Drafted but unused | Read/create endpoints for apartments and reviews already exist in a file nobody imports, with `user_uid` taken from the request instead of a login | [example_endpoints.py:68-140](apartment-review-fastapi/example_endpoints.py#L68-L140), [example_endpoints.py:92](apartment-review-fastapi/example_endpoints.py#L92) |
 | Users | Changed 2026-11-16: the plaintext `password` column and the public `POST /user` are gone. `User` now carries `google_sub`, Google's permanent id for the account. Nothing creates a user until `POST /auth/google` exists (Phase 2) | [models.py:14](apartment-review-fastapi/models.py#L14) |
-| Ratings mismatch | Model stores ratings 1–10; UI collects 0–100 on a slider | [models.py:105-114](apartment-review-fastapi/models.py#L105-L114), [CreateReviewModal.vue:38](apartment-review-vue/src/components/CreateReviewModal.vue#L38) |
+| Ratings mismatch | Changed 2026-11-16: `Review` ratings are 0–100, same as the slider (decision 6). `ReviewCreate` still says 1–10 | [models.py:92-103](apartment-review-fastapi/models.py#L92-L103), [schemas.py:86-90](apartment-review-fastapi/schemas.py#L86-L90), [CreateReviewModal.vue:38](apartment-review-vue/src/components/CreateReviewModal.vue#L38) |
 | Schema drift | `ReviewCreate` has a `value_rating` the model doesn't have; `calculate_apartment_average_rating` averages `Review.rating`, a column that doesn't exist (would crash if called) | [schemas.py:106](apartment-review-fastapi/schemas.py#L106), [utils.py:158](apartment-review-fastapi/utils.py#L158) |
-| Route naming | `main.py` uses singular `/apartment`; the drafted file uses plural `/apartments`, `/reviews`; the store calls `/api/apartments` | [main.py:38](apartment-review-fastapi/main.py#L38), [example_endpoints.py:69](apartment-review-fastapi/example_endpoints.py#L69), [apartment.ts:19](apartment-review-vue/src/stores/apartment.ts#L19) |
-| Frontend → API URL | Store hardcodes `/api/apartments`. `.env.development` sets `API_URL`, but Vite only exposes variables prefixed `VITE_`, so the app can't read it. Pulumi sets `VITE_API_URL` in production | [apartment.ts:19](apartment-review-vue/src/stores/apartment.ts#L19), [.env.development](apartment-review-vue/.env.development), [index.ts:129](infra/index.ts#L129) |
+| Route naming | `main.py` uses singular `/apartment`; the drafted file uses plural `/apartments`, `/reviews`; the store calls `/api/apartments` | [main.py:48](apartment-review-fastapi/main.py#L48), [example_endpoints.py:68](apartment-review-fastapi/example_endpoints.py#L68), [apartment.ts:56](apartment-review-vue/src/stores/apartment.ts#L56) |
+| Frontend → API URL | Store hardcodes `/api/apartments`. `.env.development` sets `API_URL`, but Vite only exposes variables prefixed `VITE_`, so the app can't read it. Pulumi sets `VITE_API_URL` in production | [apartment.ts:56](apartment-review-vue/src/stores/apartment.ts#L56), [.env.development](apartment-review-vue/.env.development), [index.ts:129](infra/index.ts#L129) |
 | CORS | No CORS middleware, so the deployed frontend (Cloudflare) can't call the deployed API (DigitalOcean) | [README.md:51](apartment-review-fastapi/README.md#L51) |
 | One review per person per apartment | Already enforced by a unique constraint | [models.py:70](apartment-review-fastapi/models.py#L70) |
 | Deployed? | Nothing is deployed yet, so schema changes are free today (no migrations needed until production has data) | [ci-cd-plan.md](ci-cd-plan.md) |
@@ -71,6 +71,7 @@ Terms used once: **SPA** = single-page app, a site whose HTML is empty until Jav
 | 13 | **Tests swap the Google verifier through `app.dependency_overrides`**, the same way `get_db` is already swapped in [conftest.py](apartment-review-fastapi/tests/conftest.py) | Verifying a real ID token needs Google's public keys over the network. The backend rules ban mocking libraries; a FastAPI dependency override is the framework's own switch, not a mock | Hit Google for real in tests (flaky, needs a real token) |
 | 14 | **The review modal has one entry point: the apartment page.** It takes `apartmentUid` + `address` props; the address search lives only on the home page | Two entry points (home button and apartment page) means a modal with two modes, a two-step submit from the home path (create apartment, then review), and double the login-gate and edit-mode tests. One entry point is half the component | Keep the home-page button and let the modal search too |
 | 15 | **Backend code style: pending Open question 5.** Default if unanswered: follow the backend rule and use `returns` | The rule is written in [apartment-review-fastapi/CLAUDE.md:6](apartment-review-fastapi/CLAUDE.md#L6), but no existing code follows it and the library isn't installed | Plain FastAPI style, as the existing code and the drafted endpoints are written |
+| 16 | **Card photos: Google Street View, loaded by the visitor's browser.** The API hands out one `photo_url` per apartment, built from the address and the `GOOGLE_MAPS_API_KEY` setting; no key or no photo = a placeholder | OpenStreetMap has no photos. Google has one for nearly every Australian address and aims it at the building. 10,000 photos a month are free; 4 cards = about 2,500 home-page visits. Changing the photo source later only touches the API | Mapillary: free, but many streets have no photo and most look down the road |
 
 Not in this plan, on purpose: migrations (nothing is deployed, see [ci-cd-plan.md](ci-cd-plan.md)); pre-rendering for SEO (Phase 4, item 6); property-manager replies (Phase 4, item 5).
 
@@ -80,19 +81,32 @@ Not in this plan, on purpose: migrations (nothing is deployed, see [ci-cd-plan.m
 
 **Outcome:** search an address on the home page, land on that apartment's page, see its averages and reviews. Nothing to sign in to yet.
 
+### One-time setup for the card photos
+- [ ] Google Cloud console → enable **Street View Static API** → create an API key.
+  - Limit the key to this site's address (website restriction) and to that one API. The key is readable in every photo address.
+  - Set a daily quota of about 300 photos, so a month can never pass the free 10,000.
+- [ ] Give the API the key as `GOOGLE_MAPS_API_KEY`. ⚠️ Needed for photos in production: add it to the DigitalOcean app's env list in [index.ts](infra/index.ts) as a Pulumi secret.
+- Google's rules for these photos: they stay on Google's servers (no copies), the "Google Maps" label stays on the photo, and no non-Google map on the same screen.
+
 ### Backend
 - [ ] Add `CORSMiddleware` to `main.py`: origins = `http://localhost:5173` plus the Cloudflare Pages URL, `allow_credentials=True` (needed in Phase 2 for the cookie). Explicit origins, never `*`.
 - [ ] Rename `POST /apartment` → `POST /apartments/from-osm` taking `OSMAddressData` (what Nominatim actually returns) and calling the existing `get_or_create_apartment` ([utils.py:9](apartment-review-fastapi/utils.py#L9)). Same address picked twice = same apartment row. Delete the old raw-fields endpoint and its two tests; write two new ones (creates; returns existing on repeat).
 - [ ] `GET /apartments/{uid}` → address fields + `review_count` + the four averages, published reviews only. One query with `func.avg`. Delete the broken `calculate_apartment_average_rating` ([utils.py:151](apartment-review-fastapi/utils.py#L151)).
   Test: apartment with 2 published + 1 pending review → count 2, averages ignore the pending one.
 - [ ] `GET /apartments/{uid}/reviews` → published only, newest first. Response shape per decision 9 (no identity fields).
-- [ ] `GET /apartments?q=smith` → apartments whose `display_name` contains the text, case-insensitive, limit 20. Also `GET /apartments/recent` → the 10 apartments with the newest published review (for the home page).
+- [ ] `GET /apartments?q=smith` → apartments whose `display_name` contains the text, case-insensitive, limit 20.
+- [x] `GET /apartments/recent?limit=` (1–20, default 10) → apartments with the newest published review first, for the home page. Done 2026-11-16.
+  - Each one: address fields, `review_count`, `average_score` (0–100), `latest_review_text`, `photo_url`. No identity fields (decision 9).
+  - Needed `Review.status` early (default `pending`), see Phase 3.
 - [ ] Move what's left of `example_endpoints.py` into `main.py` (or a `routers/` folder if `main.py` passes ~150 lines) and delete the example file.
 
 ### Frontend
 - [ ] `.env.development`: rename `API_URL` → `VITE_API_URL=http://localhost:8000`. Store: build URLs from `import.meta.env.VITE_API_URL`. Delete `createApartment` (replaced by from-osm) and `getApartmentById` (unused).
 - [ ] Home page: replace the bare address `DataTable` **and** the "Review an apartment" button with one address `AutoComplete` (move the Nominatim call out of the modal into a `useAddressSearch` composable; the modal no longer searches, see decision 14). Keep the whole Nominatim result object, not just `display_name`, because `from-osm` needs its fields. Picking a result → `POST /apartments/from-osm` → `router.push('/apartments/<uid>')`.
-- [ ] Home page below the search: "Recently reviewed" `DataTable` from `GET /apartments/recent` (address, average score, review count), rows link to the apartment page.
+- [x] Home page: "Recently reviewed" cards from `GET /apartments/recent?limit=4`, in place of the bare address `DataTable`. Done 2026-11-16 (decision 16).
+  - Each card: street photo or a placeholder, address, score out of 100, review count, the newest review's text.
+  - 4 across on a computer, one per row on a phone.
+  - Still open: a card opens the apartment page, once that page exists (next bullet).
 - [ ] New route `/apartments/:uid` → `ApartmentView.vue`: address as `h1`; a `Card` with the four averages as `ProgressBar`s (0–100) + "(n reviews)"; one `Card` per review showing "Lived here in <year>", four `ProgressBar`s, text; a `Message` empty state "No reviews yet — be the first"; a "Review this apartment" `Button` opening the existing modal, which now takes `apartmentUid` and `address` props and shows the address as plain text (decision 14).
 - [ ] Vitest: store test for `fetchApartment(uid)` happy path and error path; `ApartmentView` renders the empty state.
 
@@ -134,6 +148,7 @@ Not in this plan, on purpose: migrations (nothing is deployed, see [ci-cd-plan.m
 
 ### Backend
 - [ ] `Review`: ratings `ge=0, le=100`; delete `title`; add `lived_in_year: int`, `status: str = "pending"`, `published_at: datetime | None`. Delete `value_rating` from `schemas.py`.
+  - Done early, 2026-11-16: ratings 0–100 and `status` (the home page cards needed both). The rest is open.
 - [ ] `POST /reviews` (needs `current_user`): body = `apartment_uid`, four ratings, `content`, `lived_in_year`; `user_uid` from the session, never from the body. 404 unknown apartment; 409 if this user already reviewed it (keep the drafted logic from [example_endpoints.py:87](apartment-review-fastapi/example_endpoints.py#L87)).
 - [ ] `PUT /reviews/{uid}` (owner only, else 403): edits put it back to `pending`.
 - [ ] `GET /apartments/{uid}/reviews`: published ones, plus the caller's own pending/rejected one if logged in (flagged with `status`; still no identity fields).
@@ -169,9 +184,9 @@ Not in this plan, on purpose: migrations (nothing is deployed, see [ci-cd-plan.m
 
 1. **Cookie site.** The login cookie is only sent automatically when the frontend and API are on the same site (same registered domain, e.g. `example.com` + `api.example.com`). Today they're `*.pages.dev` and `*.ondigitalocean.app`, two different sites. Options: (a) buy a domain and point both at it (my recommendation; it also fixes the ugly URLs), or (b) set the cookie `SameSite=None; Secure` and keep two sites (works, but Safari and Brave restrict such cookies). Which?
 2. **Unit number** (decision 10): drop it, or keep it as a never-shown column?
-3. **Ratings scale** (decision 6): store 0–100 to match the slider, or keep 1–10?
+3. **Ratings scale** (decision 6): store 0–100 to match the slider, or keep 1–10? → Went with 0–100 on 2026-11-16 (the cards show a score out of 100). Still easy to flip: nothing is stored yet.
 4. **Test rule** (decision 13): OK to swap the Google verifier with a dependency override in tests, or do you want something else?
-5. **Railway-Oriented Programming.** [apartment-review-fastapi/CLAUDE.md:6](apartment-review-fastapi/CLAUDE.md#L6) says "Always use Railway-Oriented Programming with the `returns` library" (every service function returns a `Success`/`Failure` value instead of raising, and the endpoint maps a `Failure` to the HTTP error). Nothing in the repo does this yet and `returns` isn't installed. Does the rule still stand for the ~12 endpoints and 3 dependencies this plan adds? It decides the shape of every handler, so it has to be settled before Phase 1 starts. Default: follow the rule.
+5. **Railway-Oriented Programming.** [apartment-review-fastapi/CLAUDE.md:6](apartment-review-fastapi/CLAUDE.md#L6) says "Always use Railway-Oriented Programming with the `returns` library" (every service function returns a `Success`/`Failure` value instead of raising, and the endpoint maps a `Failure` to the HTTP error). Nothing in the repo does this yet and `returns` isn't installed. Does the rule still stand for the ~12 endpoints and 3 dependencies this plan adds? It decides the shape of every handler, so it has to be settled before Phase 1 starts. Default: follow the rule. → Followed the default on 2026-11-16: `returns` is installed and `GET /apartments/recent` uses it.
 
 ## Research sources
 - Pinterest, forced sign-up modal lowers retention: https://medium.com/@Pinterest_Engineering/lessons-in-growth-and-increasing-signups-d6e7d8fef479

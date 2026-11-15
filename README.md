@@ -6,10 +6,10 @@ Rate the landlord, location, condition and noise of a place you've rented, so th
 
 ## Status
 
-Early. Both halves exist and are tested, but are not wired to each other yet.
+Early. Both halves exist and are tested. The home page reads from the API; posting a review is not wired up yet.
 
-- **Frontend:** home page with the address table and the "Review an apartment" dialog: address search via OpenStreetMap, optional unit number, four 1–5 ratings, free text.
-- **Backend:** `POST /apartment` and a `GET /` health check over Postgres.
+- **Frontend:** home page with "Recently reviewed" cards (street photo, score out of 100, newest review) and the "Review an apartment" dialog: address search via OpenStreetMap, optional unit number, four 0–100 ratings, free text.
+- **Backend:** `POST /apartment`, `GET /apartments/recent` (what the cards show) and a `GET /` health check over Postgres.
 - **CI:** every push runs lint, tests and a Docker build for both halves (GitHub Actions).
 - **Next:** deploy, then public apartment pages, Google sign-in, posting, and AI screening of every review for spam, abuse, defamation and leaked personal details before it goes live.
 

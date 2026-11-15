@@ -12,8 +12,8 @@ This file adds the **AI stages (4, 6, 7)** and puts all of it in one sequence. S
 
 | Area | State | Evidence |
 |---|---|---|
-| Frontend | Home page + review dialog exist; "Post review" only logs to the console | [HomeView.vue](apartment-review-vue/src/views/HomeView.vue) |
-| Backend | Two routes: create apartment, health check. No review endpoint, no login | [main.py:38-50](apartment-review-fastapi/main.py#L38-L50), [README.md:54](apartment-review-fastapi/README.md#L54) |
+| Frontend | Home page shows recently reviewed apartments as cards with a street photo; the review dialog exists, but "Post review" only logs to the console | [HomeView.vue](apartment-review-vue/src/views/HomeView.vue) |
+| Backend | Three routes: create apartment, recently reviewed apartments, health check. No route to post or read a single review, no login | [main.py:48-78](apartment-review-fastapi/main.py#L48-L78), [README.md:54](apartment-review-fastapi/README.md#L54) |
 | CI | Lint, tests and a Docker build run on every push, for both halves. No deploy step yet | [backend.yml](.github/workflows/backend.yml), [frontend.yml](.github/workflows/frontend.yml) |
 | Deployed | Nothing. No real data yet, so schema changes are still free | [ci-cd-plan.md](ci-cd-plan.md) |
 | AI | Nothing built yet; stages 4, 6 and 7 below are the plan. The vision has one line on it | [VISION.md:16](VISION.md#L16) |

@@ -90,16 +90,21 @@ class Review(SQLModel, table=True):
 
     # Category-specific ratings (optional)
     landlord_rating: Optional[int] = Field(
-        default=None, ge=1, le=10, description="Landlord/management rating from 1 to 10"
+        default=None, ge=0, le=100, description="Landlord/management rating, 0 to 100"
     )
     location_rating: Optional[int] = Field(
-        default=None, ge=1, le=10, description="Location rating from 1 to 10"
+        default=None, ge=0, le=100, description="Location rating, 0 to 100"
     )
     condition_rating: Optional[int] = Field(
-        default=None, ge=1, le=10, description="Apartment condition rating from 1 to 10"
+        default=None, ge=0, le=100, description="Apartment condition rating, 0 to 100"
     )
     quietness_rating: Optional[int] = Field(
-        default=None, ge=1, le=10, description="Quietness rating from 1 to 10"
+        default=None, ge=0, le=100, description="Quietness rating, 0 to 100"
+    )
+
+    # Only published reviews are shown to visitors
+    status: str = Field(
+        default="pending", max_length=20, description="pending, published or rejected"
     )
 
     # Metadata

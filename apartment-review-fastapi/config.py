@@ -15,3 +15,8 @@ cors_origins = [
     for origin in os.getenv("CORS_ORIGINS", _DEFAULT_CORS_ORIGINS).split(",")
     if origin.strip()
 ]
+
+# Google Maps Platform key for Street View photos of the buildings. It ends up in
+# <img> addresses that every visitor can read, so in the Google Cloud console limit
+# it to this site's address and to the Street View Static API. Unset = no photos.
+google_maps_api_key = os.getenv("GOOGLE_MAPS_API_KEY") or None

@@ -1,7 +1,10 @@
+from returns.result import safe
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from models import Apartment, Review
-from schemas import OSMAddressData
+from photos import street_view_photo_url
+from schemas import OSMAddressData, RecentApartmentResponse
 from typing import Optional, Tuple
 from uuid import UUID
 
@@ -119,3 +122,64 @@ def calculate_apartment_average_rating(
     )
 
     return float(result) if result else None
+
+
+def _overall_score(rating_averages: list) -> Optional[int]:
+    """One 0–100 score from the per-rating averages; None if nobody rated anything."""
+    given = [float(average) for average in rating_averages if average is not None]
+    return round(sum(given) / len(given)) if given else None
+
+
+@safe(exceptions=(SQLAlchemyError,))
+def recently_reviewed_apartments(
+    db: Session, limit: int, maps_api_key: Optional[str]
+) -> list[RecentApartmentResponse]:
+    """
+    Apartments with a published review, most recently reviewed first.
+
+    Counts, scores and the quoted text come from published reviews only.
+    Returns Success(list), or Failure(error) when the database can't be read.
+    """
+    published = Review.status == "published"
+    newest_review_text = (
+        select(Review.content)
+        .where(Review.apartment_uid == Apartment.uid, published)
+        .order_by(Review.created_at.desc())
+        .limit(1)
+        .correlate(Apartment)
+        .scalar_subquery()
+    )
+    rows = (
+        db.query(
+            Apartment,
+            func.count(Review.uid),
+            newest_review_text,
+            func.avg(Review.landlord_rating),
+            func.avg(Review.location_rating),
+            func.avg(Review.condition_rating),
+            func.avg(Review.quietness_rating),
+        )
+        .join(Review, Review.apartment_uid == Apartment.uid)
+        .filter(published)
+        .group_by(Apartment.uid)
+        .order_by(func.max(Review.created_at).desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        RecentApartmentResponse(
+            uid=apartment.uid,
+            house_number=apartment.house_number,
+            street=apartment.street,
+            city=apartment.city,
+            state=apartment.state,
+            postcode=apartment.postcode,
+            display_name=apartment.display_name,
+            review_count=review_count,
+            average_score=_overall_score(averages),
+            latest_review_text=latest_review_text,
+            photo_url=street_view_photo_url(apartment.display_name, maps_api_key),
+        )
+        for apartment, review_count, latest_review_text, *averages in rows
+    ]

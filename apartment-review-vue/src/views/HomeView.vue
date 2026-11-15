@@ -12,13 +12,14 @@
       @click="showModal = true"
     />
     <Message v-if="error" severity="error">{{ error }}</Message>
-    <Card v-if="loading || apartments.length">
-      <template #content>
-        <DataTable :value="apartments" :loading="loading" data-key="uid">
-          <Column field="address" header="Address" />
-        </DataTable>
-      </template>
-    </Card>
+    <section v-if="recentApartments.length" aria-labelledby="recent-heading">
+      <h2 id="recent-heading">Recently reviewed</h2>
+      <ul class="cards">
+        <li v-for="apartment in recentApartments" :key="apartment.uid">
+          <ApartmentCard :apartment="apartment" />
+        </li>
+      </ul>
+    </section>
 
     <CreateReviewModal v-model:visible="showModal" @submit="handleSubmit" />
   </main>
@@ -29,19 +30,20 @@ import { ref, onMounted } from "vue";
 import { useApartmentStore } from "@/stores/apartment";
 import { storeToRefs } from "pinia";
 import Button from "primevue/button";
-import Card from "primevue/card";
-import Column from "primevue/column";
-import DataTable from "primevue/datatable";
 import Message from "primevue/message";
+import ApartmentCard from "@/components/ApartmentCard.vue";
 import CreateReviewModal from "@/components/CreateReviewModal.vue";
 
+// One row of cards on a computer. Each card with a photo is one counted request
+// to Google per visitor, so this number is also what the photo allowance is spent on.
+const RECENT_CARDS = 4;
+
 const store = useApartmentStore();
-const { apartments, loading, error } = storeToRefs(store);
+const { recentApartments, error } = storeToRefs(store);
 const showModal = ref(false);
 
 onMounted(() => {
-  // TODO: Uncomment when backend API is ready
-  // store.fetchApartments();
+  store.fetchRecentApartments(RECENT_CARDS);
 });
 
 function handleSubmit(data: {
@@ -71,7 +73,25 @@ h1 {
 }
 
 .p-message,
-.p-card {
+section {
   margin-top: 3rem;
+}
+
+h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--p-primary-900);
+}
+
+/* Four across at full width, fewer as the window narrows, one per row on a phone. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
 }
 </style>

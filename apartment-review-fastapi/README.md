@@ -23,6 +23,11 @@ Locally the app reads `DATABASE_URL` from the environment, falling back to
 defaulting to the Vite dev server `http://localhost:5173` and the Docker-mapped
 `http://localhost:5273` (`config.py`). In production Pulumi sets it to the Cloudflare Pages domain.
 
+`GOOGLE_MAPS_API_KEY` (optional) turns on street photos of the buildings: `GET /apartments/recent`
+then returns a Google Street View address in `photo_url` for each apartment. Without it
+`photo_url` is `null` and the home page shows a placeholder. The key is readable in those
+addresses, so limit it in the Google Cloud console to this site and to the Street View Static API.
+
 ## Production stack
 
 | Layer | Service | Plan |

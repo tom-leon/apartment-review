@@ -11,10 +11,42 @@ export interface Apartment {
   address: string;
 }
 
+/** One card on the home page, as GET /apartments/recent returns it. */
+export interface RecentApartment {
+  uid: string;
+  house_number: string | null;
+  street: string | null;
+  city: string;
+  state: string | null;
+  postcode: string | null;
+  display_name: string;
+  review_count: number;
+  /** 0–100, or null when no review gave a rating. */
+  average_score: number | null;
+  latest_review_text: string | null;
+  /** Street photo of the building, or null when the API has no photo source. */
+  photo_url: string | null;
+}
+
 export const useApartmentStore = defineStore("apartment", () => {
   const apartments = ref<Apartment[]>([]);
+  const recentApartments = ref<RecentApartment[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+
+  async function fetchRecentApartments(limit: number) {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await fetch(apiUrl(`/apartments/recent?limit=${limit}`));
+      if (!response.ok) throw new Error("Recent reviews could not be loaded");
+      recentApartments.value = await response.json();
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Unknown error";
+    } finally {
+      loading.value = false;
+    }
+  }
 
   async function fetchApartments() {
     loading.value = true;
@@ -59,8 +91,10 @@ export const useApartmentStore = defineStore("apartment", () => {
 
   return {
     apartments,
+    recentApartments,
     loading,
     error,
+    fetchRecentApartments,
     fetchApartments,
     createApartment,
     getApartmentById,

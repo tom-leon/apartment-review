@@ -18,8 +18,9 @@ configure, and `pulumi up` / `pulumi destroy`.
 
 **API base URL:** `src/stores/apartment.ts` builds every request from `VITE_API_URL`
 (`.env.development` for `npm run dev`, Docker Compose and the Pulumi program set it for their
-environments). Still missing before real users: the store calls `GET`/`POST /api/apartments`, and
-the backend has no such routes yet.
+environments). The home page's "Recently reviewed" cards call `GET /apartments/recent`, which
+the backend has. Still missing before real users: the store's older functions call
+`GET`/`POST /api/apartments`, and the backend has no such routes yet.
 
 ## Local stack (Docker Compose)
 

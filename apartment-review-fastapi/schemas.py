@@ -125,3 +125,20 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class RecentApartmentResponse(BaseModel):
+    """Schema for a recently reviewed apartment on the home page"""
+
+    uid: UUID
+    house_number: Optional[str]
+    street: Optional[str]
+    city: str
+    state: Optional[str]
+    postcode: Optional[str]
+    display_name: str
+
+    review_count: int
+    average_score: Optional[int]
+    latest_review_text: Optional[str]
+    photo_url: Optional[str]
