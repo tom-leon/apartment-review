@@ -51,6 +51,8 @@ Every command CI runs, plus the ones you run by hand. Learn these; they are the 
 | `docker compose down` | stop everything, keep the database volume |
 | `docker compose down -v` | stop everything and delete the database |
 | `docker compose exec db psql -U tom -d apartment_review` | open a SQL shell on the local database |
+| `tools/dumpdb.sh` | save the rows now in the local database to `apartment-review-fastapi/seed.sql` (stack must be up) |
+| `tools/reset-local-db.sh` | wipe the local database, recreate the tables and load `seed.sql` (stack must be up) |
 
 ## Git (daily)
 
