@@ -9,11 +9,11 @@
 
 ## Progress
 
-![](https://img.shields.io/badge/PROGRESS-4%2F7_TASKS_DONE-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/STEPS-24%2F40-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/CI_ON_MAIN-GREEN-2ea44f?style=for-the-badge) ![](https://img.shields.io/badge/PRODUCTION-NOT_YET-d73a49?style=for-the-badge)
+![](https://img.shields.io/badge/PROGRESS-4%2F7_TASKS_DONE-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/STEPS-27%2F40-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/CI_ON_MAIN-GREEN-2ea44f?style=for-the-badge) ![](https://img.shields.io/badge/PRODUCTION-NOT_YET-d73a49?style=for-the-badge)
 
 ```
 TASKS   🟩🟩🟩🟩⬜⬜⬜   4 / 7
-STEPS   🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜   24 / 40
+STEPS   🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜   27 / 40
 ```
 
 | # | Task | Status | Steps |
@@ -22,7 +22,7 @@ STEPS   🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜
 | 2 | Backend CI workflow | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩 4/4 |
 | 3 | Frontend CI workflow | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩 4/4 |
 | 4 | Pulumi points at the monorepo | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩🟩🟩🟩🟩🟩 9/9 |
-| 5 | **First production deploy (manual)** | ![](https://img.shields.io/badge/NOT_STARTED-d73a49?style=flat-square) | ⬜⬜⬜⬜⬜⬜ 0/6 |
+| 5 | **First production deploy (manual)** | ![](https://img.shields.io/badge/IN_PROGRESS-f0ad4e?style=flat-square) | 🟩🟩🟩⬜⬜⬜ 3/6 |
 | 6 | Backend deploy job | ![](https://img.shields.io/badge/BLOCKED-8b949e?style=flat-square) 🔒 needs Task 5 step 5 | ⬜⬜⬜⬜ 0/4 |
 | 7 | Dependabot | ![](https://img.shields.io/badge/READY-0969da?style=flat-square) | ⬜⬜⬜⬜⬜⬜ 0/6 |
 
@@ -37,7 +37,7 @@ STEPS   🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜
 - ✅ `infra/` moved to the repo root, beside the two apps
 - ✅ Repo public since 2026-11-08
 
-**🔴 Next: Task 5, the first production deploy.**
+**🟡 Next: Task 5 step 4. Backend live at `https://apartment-review-backend-dvibp.ondigitalocean.app` (health 200, recent 200). Frontend needs `VITE_API_URL` via `pulumi up --refresh`, then a build.**
 
 - The one manual task: dashboard clicks and real API tokens.
 - Run from `infra/`.
@@ -616,9 +616,9 @@ by GitHub Actions after its tests pass.
 
 ---
 
-## 🔴 Task 5: First production deploy (manual; each cloud step is a write)
+## 🟡 Task 5: First production deploy (manual; each cloud step is a write)
 
-![](https://img.shields.io/badge/TASK_5-NOT_STARTED-d73a49?style=for-the-badge) ⬜⬜⬜⬜⬜⬜ **0/6** · run by hand from `infra/`
+![](https://img.shields.io/badge/TASK_5-IN_PROGRESS-f0ad4e?style=for-the-badge) 🟩🟩🟩⬜⬜⬜ **3/6** · run by hand from `infra/`
 
 > [!CAUTION]
 > **Manual only.**
@@ -642,10 +642,11 @@ by GitHub Actions after its tests pass.
 - **Cloudflare API token:** My Profile → API Tokens → Create Token → Custom token → permissions `Account · Cloudflare Pages · Edit` and `Account · Account Settings · Read` → Account resources: your account → copy it now (shown once).
 - **DigitalOcean token for Pulumi:** API → Tokens → Generate New Token → Full Access → copy it now (shown once). The narrower CI token is a separate token, made in step 5.
 
-- [ ] 🔲 **Step 1: Create the stack and set the config** (from `infra`)
+- [x] ✅ **Step 1: Create the stack and set the config** (from `infra`, in your own terminal; the passphrase and the secrets are typed by hand, never through the agent)
 
 ```bash
-pulumi stack init dev
+pulumi login --local      # this Mac is logged into a work state bucket; state for this stack goes to ~/.pulumi instead
+pulumi stack init dev     # asks for a passphrase: pick one, store it in 1Password
 pulumi config set cloudflareAccountId <cloudflare account id>
 pulumi config set neonOrgId <neon org id>
 pulumi config set --secret digitalocean:token <DigitalOcean token, full read/write — Pulumi creates the app>
@@ -653,11 +654,13 @@ pulumi config set --secret cloudflare:apiToken <Cloudflare token: Cloudflare Pag
 pulumi config set --secret neonApiKey <Neon API key>
 ```
 
-- [ ] 🔲 **Step 2: Authorise the two GitHub apps on the monorepo** (dashboard, once)
+  - 2026-11-19: `pulumi login --local`, `stack init dev`, `neonOrgId` and `neonApiKey` done. Pulumi upgraded 3.221 → 3.277. `cloudflareAccountId`, `cloudflare:apiToken` and `digitalocean:token` set the same day. All config in place.
+
+- [x] ✅ **Step 2: Authorise the two GitHub apps on the monorepo** (dashboard, once) — 2026-11-20 (DigitalOcean) and 2026-11-27 (Cloudflare); both wizards left before creating anything
   - DigitalOcean: Apps → Create App → GitHub → authorise → grant access to `tom-leon/apartment-review` → cancel the wizard.
   - Cloudflare: Workers & Pages → Create → Pages → Connect to Git → authorise the same repo → cancel.
 
-- [ ] 🔲 **Step 3: Preview, then create everything**
+- [x] ✅ **Step 3: Preview, then create everything** — 2026-11-27, three runs: Neon history limit fix, then the `postgres://` fix (`bfb4589`), then a hand-clicked Deploy in DigitalOcean because an unchanged spec does not trigger a build
 
 ```bash
 pulumi preview   # expect 6 to create: stack, Neon provider, Neon project, Neon database, DigitalOcean app, Cloudflare Pages project
