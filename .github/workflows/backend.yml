@@ -21,3 +21,13 @@ jobs:
       - run: uv run flake8 .
       - run: uv run pytest
       - run: docker build .
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency: backend-production
+    steps:
+      - uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - run: doctl apps create-deployment ${{ vars.DO_APP_ID }} --wait
