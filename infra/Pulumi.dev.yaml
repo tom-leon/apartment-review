@@ -1,8 +1,15 @@
 config:
-  cloudflareAccountId: "REPLACE_WITH_YOUR_CLOUDFLARE_ACCOUNT_ID"
-  neonOrgId: "REPLACE_WITH_YOUR_NEON_ORG_ID"
-  githubOwner: "tom-leon"
-  githubRepo: "apartment-review"
-  branch: "main"
-  doRegion: "sgp"
-  doInstanceSize: "apps-s-1vcpu-0.5gb"
+  apartment-review-infra:branch: main
+  apartment-review-infra:cloudflareAccountId: 5c0021c84e150afa21816963f59e9ebd
+  apartment-review-infra:doInstanceSize: apps-s-1vcpu-0.5gb
+  apartment-review-infra:doRegion: syd
+  apartment-review-infra:githubOwner: tom-leon
+  apartment-review-infra:githubRepo: apartment-review
+  apartment-review-infra:neonOrgId: org-floral-paper-94242583
+  apartment-review-infra:neonApiKey:
+    secure: v1:/4mrn/mOz6tIo1u7:kq848jC7HJ4dOc8bRwOFmjKitAZCKvowxfTrchKIWKf7i7iPMCWWtwNvCokD6YKtxsxz7BKRdtcYSe9bp/38HnuKO0V8wC9i4YADKtEGi8jas1gSMA==
+  cloudflare:apiToken:
+    secure: v1:hjsghluOfuaOTGWI:f4P9ZrQdQB8Im3ZY2xBx8I7A+0COzF2FuVTZkAjorh+7+FR/w+vGOQ+PWEuBCpbVZf6dgTojD5F+s5Dp+kCv5+lCohzG
+  digitalocean:token:
+    secure: v1:299z6u5o35GRO3Ze:RFFaYz1DTafgKGAyVuYG8oEGmC2P6vV5ryzc7SYyjPNgVXj8z9M6Rf/sIlOs2eLOhszQRxfklBASLfqav7Gt50zSN8IcAz7m2P4Ms4Wd2E1RLot5MmBt
+encryptionsalt: v1:ZZrpHNsCyzg=:v1:YSWDh8kD/iNw0jki:BIVxBtB8jwVKfl6RZnOGaLS16u9aSw==

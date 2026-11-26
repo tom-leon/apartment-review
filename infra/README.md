@@ -86,7 +86,7 @@ pulumi stack output databaseConnectionString --show-secrets  # Neon connection s
 
 - DigitalOcean App Platform (`apps-s-1vcpu-0.5gb`): **$5/mo**
 - Cloudflare Pages: **$0** (free tier, no commercial-use restriction)
-- Neon (`aws-ap-southeast-1`, free tier): **$0** until you outgrow 0.5 GB storage / 100 CU-hours
+- Neon (`aws-ap-southeast-2`, free tier): **$0** until you outgrow 0.5 GB storage / 100 CU-hours
 
 **~$5/mo total** to start, growing only as Neon usage crosses the free tier.
 

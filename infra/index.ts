@@ -17,8 +17,8 @@ const branch = cfg.get("branch") ?? "main";
 // --- sizing / region -----------------------------------------------------------
 // apps-s-1vcpu-0.5gb = $5/mo (cheapest real DO App Platform tier, Aug 2026 pricing).
 const doInstanceSize = cfg.get("doInstanceSize") ?? "apps-s-1vcpu-0.5gb";
-// DO App Platform has no Sydney region; sgp (Singapore) is the closest to AU.
-const doRegion = cfg.get("doRegion") ?? "sgp";
+// syd (Sydney): App Platform supports it for Docker apps, checked 2026-11-20.
+const doRegion = cfg.get("doRegion") ?? "syd";
 
 // --- secrets -------------------------------------------------------------------
 // Set these with:
@@ -42,8 +42,9 @@ const neonProject = new neon.Project(
   {
     name: "apartment-review",
     pgVersion: 16,
-    regionId: "aws-ap-southeast-1", // Singapore — pairs with the DO app region above
+    regionId: "aws-ap-southeast-2", // Sydney — pairs with the DO app region above
     orgId: neonOrgId,
+    historyRetentionSeconds: 21600, // 6 h, the free-plan maximum; the provider default (24 h) is rejected
   },
   { provider: neonProvider },
 );
