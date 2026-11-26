@@ -9,11 +9,11 @@
 
 ## Progress
 
-![](https://img.shields.io/badge/PROGRESS-4%2F7_TASKS_DONE-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/STEPS-27%2F40-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/CI_ON_MAIN-GREEN-2ea44f?style=for-the-badge) ![](https://img.shields.io/badge/PRODUCTION-NOT_YET-d73a49?style=for-the-badge)
+![](https://img.shields.io/badge/PROGRESS-4%2F7_TASKS_DONE-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/STEPS-29%2F40-f0ad4e?style=for-the-badge) ![](https://img.shields.io/badge/CI_ON_MAIN-GREEN-2ea44f?style=for-the-badge) ![](https://img.shields.io/badge/PRODUCTION-LIVE-2ea44f?style=for-the-badge)
 
 ```
 TASKS   🟩🟩🟩🟩⬜⬜⬜   4 / 7
-STEPS   🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜   27 / 40
+STEPS   🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜   29 / 40
 ```
 
 | # | Task | Status | Steps |
@@ -22,8 +22,8 @@ STEPS   🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜�
 | 2 | Backend CI workflow | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩 4/4 |
 | 3 | Frontend CI workflow | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩 4/4 |
 | 4 | Pulumi points at the monorepo | ![](https://img.shields.io/badge/DONE-2ea44f?style=flat-square) | 🟩🟩🟩🟩🟩🟩🟩🟩🟩 9/9 |
-| 5 | **First production deploy (manual)** | ![](https://img.shields.io/badge/IN_PROGRESS-f0ad4e?style=flat-square) | 🟩🟩🟩⬜⬜⬜ 3/6 |
-| 6 | Backend deploy job | ![](https://img.shields.io/badge/BLOCKED-8b949e?style=flat-square) 🔒 needs Task 5 step 5 | ⬜⬜⬜⬜ 0/4 |
+| 5 | **First production deploy (manual)** | ![](https://img.shields.io/badge/IN_PROGRESS-f0ad4e?style=flat-square) | 🟩🟩🟩🟩🟩⬜ 5/6 |
+| 6 | Backend deploy job | ![](https://img.shields.io/badge/IN_PROGRESS-f0ad4e?style=flat-square) | 🟩🟩⬜⬜ 2/4 |
 | 7 | Dependabot | ![](https://img.shields.io/badge/READY-0969da?style=flat-square) | ⬜⬜⬜⬜⬜⬜ 0/6 |
 
 **Milestones**
@@ -36,8 +36,9 @@ STEPS   🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜�
 - ✅ `VITE_API_URL` wiring done ahead of the plan (`d424bee`)
 - ✅ `infra/` moved to the repo root, beside the two apps
 - ✅ Repo public since 2026-11-08
+- ✅ Production live 2026-11-27: https://apartment-review.pages.dev + https://apartment-review-backend-dvibp.ondigitalocean.app
 
-**🟡 Next: Task 5 step 4. Backend live at `https://apartment-review-backend-dvibp.ondigitalocean.app` (health 200, recent 200). Frontend needs `VITE_API_URL` via `pulumi up --refresh`, then a build.**
+**🟡 Next: Task 6 step 3, commit and push `backend.yml`, then watch the first automatic deploy.**
 
 - The one manual task: dashboard clicks and real API tokens.
 - Run from `infra/`.
@@ -618,7 +619,7 @@ by GitHub Actions after its tests pass.
 
 ## 🟡 Task 5: First production deploy (manual; each cloud step is a write)
 
-![](https://img.shields.io/badge/TASK_5-IN_PROGRESS-f0ad4e?style=for-the-badge) 🟩🟩🟩⬜⬜⬜ **3/6** · run by hand from `infra/`
+![](https://img.shields.io/badge/TASK_5-IN_PROGRESS-f0ad4e?style=for-the-badge) 🟩🟩🟩🟩🟩⬜ **5/6** · run by hand from `infra/`
 
 > [!CAUTION]
 > **Manual only.**
@@ -670,7 +671,7 @@ pulumi up
 - Creating the app starts its first deployment even with `deployOnPush: false`.
 - Creating the Pages project with a Git source starts its first build. If it doesn't, push any commit to `main`.
 
-- [ ] 🔲 **Step 4: Smoke-test**
+- [x] ✅ **Step 4: Smoke-test** — 2026-11-27: backend `/` 200, `/apartments/recent` 200; frontend https://apartment-review.pages.dev 200 with the backend address in the built JS
 
 ```bash
 curl -s "$(pulumi stack output backendUrl)/"
@@ -680,7 +681,7 @@ curl -s "$(pulumi stack output backendUrl)/"
 - Then open `pulumi stack output frontendUrl` in a browser: the Vue app renders.
 - CORS and the API base URL are wired now. The list route itself is still missing (see *Found while planning*).
 
-- [ ] 🔲 **Step 5: Give CI a narrowly scoped DigitalOcean token**
+- [x] ✅ **Step 5: Give CI a narrowly scoped DigitalOcean token** — 2026-11-27: secret `DIGITALOCEAN_ACCESS_TOKEN` set by hand, variable `DO_APP_ID` set
   - DigitalOcean → API → Generate New Token → Custom Scopes → `app:read` + `app:update`.
   - Those are what "create deployment" and `--wait` polling need. Scopes can't be edited after creation.
   - Then:
@@ -695,13 +696,13 @@ gh variable set DO_APP_ID -R tom-leon/apartment-review --body "$(pulumi stack ou
   - Not settable from the Pulumi v5 provider.
   - Saves builds against the 500/month free quota. Harmless to skip.
 
-🔒 **Task 6 stays blocked until step 5 here is done.**
+✅ **Step 5 done, Task 6 unblocked.**
 
 ---
 
-## 🔒 Task 6: Backend deploy job
+## 🟡 Task 6: Backend deploy job
 
-![](https://img.shields.io/badge/TASK_6-BLOCKED-8b949e?style=for-the-badge) ⬜⬜⬜⬜ **0/4** · blocked until Task 5 step 5
+![](https://img.shields.io/badge/TASK_6-IN_PROGRESS-f0ad4e?style=for-the-badge) 🟩🟩⬜⬜ **2/4** · 2026-11-27
 
 > [!WARNING]
 > Do not add this job before the secret and variable exist, or every push to `main` goes red (review focus 6).
@@ -715,7 +716,7 @@ gh variable set DO_APP_ID -R tom-leon/apartment-review --body "$(pulumi stack ou
 - Consumes job `test` (Task 2).
 - Consumes secret `DIGITALOCEAN_ACCESS_TOKEN` and variable `DO_APP_ID` (Task 5).
 
-- [ ] 🔲 **Step 1: Add the deploy job** at the end of `jobs:` in `backend.yml`
+- [x] ✅ **Step 1: Add the deploy job** at the end of `jobs:` in `backend.yml`
 
 ```yaml
   deploy:
@@ -734,7 +735,7 @@ gh variable set DO_APP_ID -R tom-leon/apartment-review --body "$(pulumi stack ou
 - `create-deployment`: tells DigitalOcean to rebuild from the current head of `main`.
 - `--wait`: the job fails if the deployment fails, so a bad deploy shows up red in Actions.
 
-- [ ] 🔲 **Step 2: Check the YAML parses locally**
+- [x] ✅ **Step 2: Check the YAML parses locally**
   - Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/backend.yml')); print('ok')"`
   - Expected: `ok`
 
