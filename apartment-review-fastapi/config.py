@@ -3,8 +3,12 @@ import os
 _DEFAULT_DATABASE_URL = "postgresql+psycopg://tom:123@localhost:5432/apartment_review"
 
 database_url = os.getenv("DATABASE_URL", _DEFAULT_DATABASE_URL)
-if database_url.startswith("postgresql://"):
-    database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+# Hosted databases hand out "postgres://" (Neon) or "postgresql://"; SQLAlchemy only
+# accepts the driver-qualified form.
+for _scheme in ("postgresql://", "postgres://"):
+    if database_url.startswith(_scheme):
+        database_url = database_url.replace(_scheme, "postgresql+psycopg://", 1)
+        break
 
 _DEFAULT_CORS_ORIGINS = "http://localhost:5173,http://localhost:5273"
 
