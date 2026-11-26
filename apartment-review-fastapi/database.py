@@ -4,7 +4,10 @@ from sqlalchemy.orm import sessionmaker
 from config import database_url
 
 
-engine = create_engine(database_url)
+# pool_pre_ping: Neon suspends an idle database, which silently kills pooled
+# connections; check each one before use so the next request reconnects
+# instead of hanging.
+engine = create_engine(database_url, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
