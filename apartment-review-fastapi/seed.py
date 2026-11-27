@@ -17,10 +17,9 @@ from returns.result import Failure, Success, safe
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from sqlmodel import SQLModel
 
 from config import database_url
-from database import SessionLocal, engine
+from database import SessionLocal
 from models import Apartment, Review, User
 
 # No Google account has an ID like this, so nobody can sign in as a sample reviewer.
@@ -219,7 +218,6 @@ def main() -> int:
         print("Not adding sample data: DATABASE_URL is not a database on this machine.")
         return 1
 
-    SQLModel.metadata.create_all(engine)
     with SessionLocal() as db:
         match seed_database(db):
             case Success(Seeded(users=0, apartments=0, reviews=0)):

@@ -18,6 +18,7 @@ const review: NewReview = {
   conditionRating: 35,
   quietnessRating: 70,
   reviewText: "Cold in winter, lovely neighbours.",
+  unitNumber: "12A",
 };
 
 /** Stand in for the API: record each request, answer each path with its status and body. */
@@ -59,12 +60,24 @@ describe("postReview", () => {
     });
     expect(JSON.parse(requests[1].init!.body as string)).toEqual({
       apartment_uid: "a1",
+      unit_number: "12A",
       content: "Cold in winter, lovely neighbours.",
       landlord_rating: 55,
       location_rating: 90,
       condition_rating: 35,
       quietness_rating: 70,
     });
+  });
+
+  it("sends no unit number when the reviewer left it blank", async () => {
+    const requests = apiAnswers({
+      "/apartments/from-osm": [201, { uid: "a1" }],
+      "/reviews": [201, { uid: "r1" }],
+    });
+
+    await postReview({ ...review, unitNumber: "" });
+
+    expect(JSON.parse(requests[1].init!.body as string).unit_number).toBeNull();
   });
 
   it("sends the sign-in cookie with the review", async () => {

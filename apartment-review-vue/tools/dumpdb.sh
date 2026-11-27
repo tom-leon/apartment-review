@@ -3,4 +3,4 @@
 # tools/reset-local-db.sh loads. Run with the stack up: tools/dumpdb.sh
 set -e
 cd "$(dirname "$0")/.."
-docker compose exec -T db pg_dump -U tom -d apartment_review -a --column-inserts --restrict-key=seed > ../apartment-review-fastapi/seed.sql
+docker compose exec -T db pg_dump -U tom -d apartment_review -a --column-inserts --restrict-key=seed --exclude-table=alembic_version > ../apartment-review-fastapi/seed.sql

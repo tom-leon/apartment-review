@@ -73,9 +73,19 @@ deploy it — the Pulumi stack points DigitalOcean at this folder of `tom-leon/a
 
 - **Creating an apartment needs no sign-in.** `POST /apartment` and `POST /apartments/from-osm`
   are open to the internet. Posting, editing and deleting a review do need a signed-in user.
-- **No migrations.** `main.py` calls `SQLModel.metadata.create_all(engine)` on startup, which
-  creates missing tables but never alters existing ones. Add Alembic before the first schema
-  change against production data.
+- **Reviews are not checked before they show.** A posted review is public at once.
+
+## Database migrations
+
+Table changes are [Alembic](https://alembic.sqlalchemy.org) migrations in `migrations/versions/`.
+
+- After changing a file in `models/`: `uv run alembic revision --autogenerate -m "what changed"`,
+  then commit the new file with the model change. `tests/test_migrations.py` fails (locally and
+  in CI) when the models and the migrations disagree.
+- Applying them is automatic: the container's start command is `alembic upgrade head`, then the
+  API ([Dockerfile](Dockerfile), and the same in Docker Compose). Every deploy therefore brings
+  the database up to date first, and a migration that fails stops the new version from starting.
+- A database made before Alembic was added is taken over as it is by the first migration.
 
 ## Dependencies
 

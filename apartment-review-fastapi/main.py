@@ -4,8 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from config import cors_origins, session_https_only, session_secret
-from database import engine, get_db  # noqa: F401 (tests swap get_db)
-from sqlmodel import SQLModel
+from database import get_db  # noqa: F401 (tests swap get_db)
 from routers import apartments, auth, reviews
 
 logger = logging.getLogger(__name__)
@@ -26,11 +25,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def create_tables():
-    SQLModel.metadata.create_all(engine)
 
 
 app.include_router(apartments.router)

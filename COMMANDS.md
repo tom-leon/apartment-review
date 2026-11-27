@@ -17,6 +17,9 @@ Every command CI runs, plus the ones you run by hand. Learn these; they are the 
 | `uv run pytest` | run all tests in `tests/` |
 | `uv run pytest -q` | same, shorter output |
 | `uv run pytest tests/test_main.py::test_name -v` | run one test |
+| `uv run alembic revision --autogenerate -m "add X to review"` | after changing a file in `models/`: write the migration that makes the same change to the database tables (needs a running database that is up to date) |
+| `uv run alembic upgrade head` | apply every migration the database in `DATABASE_URL` has not had yet; the backend container does this by itself each time it starts |
+| `uv run alembic check` | say whether the models and the database tables still match |
 | `uv run python seed.py` | add sample reviewers, apartments and reviews to the database in `DATABASE_URL`; a second run adds nothing; refuses any database that is not on this machine |
 | `DATABASE_URL=postgresql://tom:123@localhost:5532/apartment_review uv run python seed.py` | same, into the Docker Compose database |
 | `docker build .` | build the Dockerfile the way DigitalOcean will |
@@ -52,7 +55,7 @@ Every command CI runs, plus the ones you run by hand. Learn these; they are the 
 | `docker compose down -v` | stop everything and delete the database |
 | `docker compose exec db psql -U tom -d apartment_review` | open a SQL shell on the local database |
 | `tools/dumpdb.sh` | save the rows now in the local database to `apartment-review-fastapi/seed.sql` (stack must be up) |
-| `tools/reset-local-db.sh` | wipe the local database, recreate the tables and load `seed.sql` (stack must be up) |
+| `tools/reset-local-db.sh` | wipe the local database, recreate the tables with `alembic upgrade head` and load `seed.sql` (stack must be up) |
 
 ## Git (daily)
 

@@ -12,7 +12,7 @@
       @click="showModal = true"
     />
     <Message v-if="posted" severity="success">
-      Thanks. Your review goes live once we’ve checked it.
+      Thanks. Your review is live.
     </Message>
     <Message v-if="error" severity="error">{{ error }}</Message>
     <section v-if="recentApartments.length" aria-labelledby="recent-heading">
@@ -24,7 +24,7 @@
       </ul>
     </section>
 
-    <CreateReviewModal v-model:visible="showModal" @submit="posted = true" />
+    <CreateReviewModal v-model:visible="showModal" @submit="showPostedReview" />
   </main>
 </template>
 
@@ -49,6 +49,11 @@ const posted = ref(false);
 onMounted(() => {
   store.fetchRecentApartments(RECENT_CARDS);
 });
+
+function showPostedReview() {
+  posted.value = true;
+  store.fetchRecentApartments(RECENT_CARDS);
+}
 </script>
 
 <style scoped>

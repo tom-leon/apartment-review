@@ -159,6 +159,7 @@ async function submitReview() {
     conditionRating: conditionRating.value,
     quietnessRating: quietnessRating.value,
     reviewText: reviewText.value,
+    unitNumber: unitNumber.value.trim(),
   };
 
   posting.value = true;

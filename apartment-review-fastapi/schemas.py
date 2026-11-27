@@ -91,6 +91,7 @@ class ReviewCreate(ReviewUpdate):
     """Schema for creating a review: its text and ratings, and which apartment"""
 
     apartment_uid: UUID
+    unit_number: Optional[str] = Field(default=None, max_length=20)
 
 
 class ReviewResponse(BaseModel):

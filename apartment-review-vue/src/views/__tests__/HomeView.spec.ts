@@ -90,7 +90,20 @@ describe("HomeView", () => {
     await flushPromises();
 
     expect(home.find(".p-message-success").text()).toContain(
-      "Thanks. Your review goes live once we’ve checked it.",
+      "Thanks. Your review is live.",
     );
+  });
+
+  it("loads the cards again once a review is posted, so the new one shows", async () => {
+    const requested = apiAnswers(200, []);
+    const home = await mountHome();
+
+    await home.findComponent(CreateReviewModal).vm.$emit("submit");
+    await flushPromises();
+
+    expect(requested).toEqual([
+      "https://api.example.com/apartments/recent?limit=4",
+      "https://api.example.com/apartments/recent?limit=4",
+    ]);
   });
 });

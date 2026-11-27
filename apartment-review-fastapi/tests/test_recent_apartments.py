@@ -153,13 +153,13 @@ def test_recent_shows_only_published_reviews(client, db):
     assert apartments[0]["latest_review_text"] == "Published words"
 
 
-def test_a_new_review_waits_as_pending(db):
+def test_a_new_review_is_published(db):
     apartment = add_apartment(db, "12", "Brunswick Street")
 
     review = add_review(db, apartment, content="Fresh from the form")
 
     db.refresh(review)
-    assert review.status == "pending"
+    assert review.status == "published"
 
 
 def test_recent_quotes_the_newest_published_review(client, db):

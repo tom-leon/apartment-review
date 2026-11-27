@@ -34,10 +34,11 @@ async function pickAddress(modal: Modal) {
 }
 
 /** Stand in for the API: answer every request with this status, and record the paths. */
-function apiAnswers(status: number) {
+function apiAnswers(status: number, bodies: string[] = []) {
   const requested: string[] = [];
-  vi.stubGlobal("fetch", async (url: string) => {
+  vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
     requested.push(url);
+    bodies.push(init?.body as string);
     return new Response(JSON.stringify({ uid: "a1" }), { status });
   });
   return requested;
@@ -127,6 +128,19 @@ describe("CreateReviewModal posting", () => {
     expect(requested).toEqual(["/apartments/from-osm", "/reviews"]);
     expect(modal.emitted("submit")).toHaveLength(1);
     expect(modal.emitted("update:visible")?.at(-1)).toEqual([false]);
+  });
+
+  it("sends the unit number the reviewer typed", async () => {
+    const bodies: string[] = [];
+    apiAnswers(201, bodies);
+    const modal = await mountModal();
+    await pickAddress(modal);
+    await modal.find("#unitNumber").setValue(" 12A ");
+
+    await postButton(modal).trigger("click");
+    await flushPromises();
+
+    expect(JSON.parse(bodies[1]).unit_number).toBe("12A");
   });
 
   it("asks for an address from the list when none was picked", async () => {

@@ -156,6 +156,4 @@ The `OSMAddressData` schema handles these variations.
 
 ## Database Migrations
 
-To apply the schema changes, restart your FastAPI app. SQLModel will create the tables automatically via `SQLModel.metadata.create_all(engine)` in `main.py`.
-
-For production, consider using Alembic for proper migrations.
+Table changes are Alembic migrations in `migrations/versions/`. After changing a model, run `uv run alembic revision --autogenerate -m "what changed"` and commit the new file. The backend container runs `uv run alembic upgrade head` each time it starts.

@@ -15,6 +15,8 @@ export interface NewReview {
   conditionRating: number;
   quietnessRating: number;
   reviewText: string;
+  /** The reviewer's unit in the building, or "" when left blank. Never shown to visitors. */
+  unitNumber: string;
 }
 
 const FAILURES: Record<number, string> = {
@@ -44,6 +46,7 @@ export async function postReview(review: NewReview) {
   });
   await send("/reviews", {
     apartment_uid: apartment.uid,
+    unit_number: review.unitNumber || null,
     content: review.reviewText,
     landlord_rating: review.landlordRating,
     location_rating: review.locationRating,

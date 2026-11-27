@@ -107,11 +107,8 @@ Pages is already in use.
 These are not hosting decisions, but they will bite on launch day and some of them influence the
 setup above.
 
-**No migrations.** `main.py` calls `SQLModel.metadata.create_all(engine)` at import time. That
-creates missing tables but never alters existing ones, so the first schema change against a
-production database will silently do nothing and the app will fail on a missing column. Add
-Alembic before the first deploy. This is much cheaper to do now than after there's data to
-preserve.
+**Migrations.** Table changes are Alembic migrations in `apartment-review-fastapi/migrations/`.
+The backend container runs `alembic upgrade head` each time it starts, before the API.
 
 **No CORS middleware,** which is fine only if the same-origin proxy in option 1 is used. If the
 frontend ever calls the API on a different hostname, add `CORSMiddleware` with an explicit

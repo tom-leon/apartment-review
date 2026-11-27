@@ -46,7 +46,7 @@ def review_http_error(error: ReviewError) -> HTTPException:
 async def post_review(
     review_data: ReviewCreate, user: signed_in_user, db: db_dependency
 ):
-    """Post your review of an apartment. Visitors see it once it has been checked."""
+    """Post your review of an apartment. Visitors see it straight away."""
     match create_review(db, user.uid, review_data):
         case Success(review):
             return review
@@ -71,12 +71,7 @@ async def update_review(
     user: signed_in_user,
     db: db_dependency,
 ):
-    """
-    Replace the text and ratings of your own review.
-
-    Anything left out of the request is cleared, and the review goes back to
-    "pending" so it is checked again before visitors see it.
-    """
+    """Replace the text and ratings of your own review; anything left out is cleared."""
     match update_own_review(db, review_uid, user.uid, review_data):
         case Success(review):
             return review

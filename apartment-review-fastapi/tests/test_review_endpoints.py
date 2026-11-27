@@ -113,16 +113,39 @@ def test_signed_in_tenant_can_post_a_review(as_tenant, apartment, tenant, db):
     assert body["content"] == "Cold in winter, lovely neighbours."
 
 
-def test_a_new_review_waits_to_be_checked(as_tenant, apartment):
-    response = post_review(as_tenant, apartment.uid, content="Fine.")
+def test_a_new_review_is_public_straight_away(as_tenant, apartment):
+    post_review(as_tenant, apartment.uid, content="Fine.")
 
-    assert response.json()["status"] == "pending"
+    visible = as_tenant.get(f"/apartments/{apartment.uid}/reviews").json()
+    assert [each["content"] for each in visible] == ["Fine."]
 
 
 def test_a_review_response_does_not_say_who_wrote_it(as_tenant, apartment):
     response = post_review(as_tenant, apartment.uid, content="Fine.")
 
     assert "user_uid" not in response.json()
+
+
+def test_the_unit_number_is_saved_with_the_review(as_tenant, apartment, db):
+    post_review(as_tenant, apartment.uid, content="Fine.", unit_number="12A")
+
+    assert db.query(Review).one().unit_number == "12A"
+
+
+def test_the_unit_number_is_never_sent_back(as_tenant, apartment):
+    posted = post_review(as_tenant, apartment.uid, content="Fine.", unit_number="12A")
+
+    visible = as_tenant.get(f"/apartments/{apartment.uid}/reviews").json()
+    assert "unit_number" not in posted.json()
+    assert "unit_number" not in visible[0]
+
+
+def test_an_edit_keeps_the_unit_number(as_tenant, apartment, db):
+    posted = post_review(as_tenant, apartment.uid, content="Fine.", unit_number="12A")
+
+    as_tenant.put(f"/reviews/{posted.json()['uid']}", json={"content": "Better."})
+
+    assert db.query(Review).one().unit_number == "12A"
 
 
 def test_posting_a_review_needs_sign_in(client, apartment, db):
@@ -178,7 +201,7 @@ def test_visitor_reads_the_published_reviews_newest_first(
 def test_visitor_does_not_see_a_review_that_is_not_published(
     client, apartment, review, other_tenant, db
 ):
-    add_review(db, apartment, other_tenant, content="Not checked yet.")
+    add_review(db, apartment, other_tenant, content="Held back.", status="pending")
 
     response = client.get(f"/apartments/{apartment.uid}/reviews")
 
@@ -247,11 +270,11 @@ def test_edit_rejects_a_rating_above_100(as_tenant, review, db):
     assert review.landlord_rating == 40
 
 
-def test_an_edited_review_goes_back_to_pending(as_tenant, review, db):
+def test_an_edited_review_stays_public(as_tenant, review):
     edit(as_tenant, review, {"content": "Rewritten after publishing."})
 
-    db.refresh(review)
-    assert review.status == "pending"
+    visible = as_tenant.get(f"/apartments/{review.apartment_uid}/reviews").json()
+    assert [each["content"] for each in visible] == ["Rewritten after publishing."]
 
 
 def test_an_edit_records_when_the_review_changed(as_tenant, review, db):

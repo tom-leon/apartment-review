@@ -32,7 +32,7 @@ class ReviewError(Enum):
 def create_review(
     db: Session, user_uid: UUID, review_data: ReviewCreate
 ) -> Result[Review, ReviewError]:
-    """Save a new review, one per person per apartment; it starts as "pending" """
+    """Save a new review, one per person per apartment; visitors see it at once"""
     if get_apartment_by_id(db, review_data.apartment_uid) is None:
         return Failure(ReviewError.NO_APARTMENT)
     if get_user_review_for_apartment(db, review_data.apartment_uid, user_uid):
@@ -79,8 +79,6 @@ def update_own_review(
     def save(review: Review) -> Review:
         for field, value in changes.model_dump().items():
             setattr(review, field, value)
-        # An edited review has to be checked again before visitors see it
-        review.status = "pending"
         review.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(review)

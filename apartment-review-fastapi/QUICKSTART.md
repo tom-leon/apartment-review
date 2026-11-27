@@ -46,7 +46,7 @@ The models will auto-create tables when you restart your FastAPI app:
 python main.py
 ```
 
-SQLModel will automatically create the new tables and columns via `SQLModel.metadata.create_all(engine)`.
+The tables are made and changed by the Alembic migrations in `migrations/`: run `uv run alembic upgrade head` (the backend container does it by itself when it starts).
 
 ### Step 2: Test the Models
 

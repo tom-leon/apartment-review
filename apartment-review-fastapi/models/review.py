@@ -28,6 +28,11 @@ class Review(SQLModel, table=True):
         default=None, max_length=255, description="Review title/summary"
     )
     content: Optional[str] = Field(default=None, description="Detailed review text")
+    unit_number: Optional[str] = Field(
+        default=None,
+        max_length=20,
+        description="The reviewer's unit in the building; never shown to visitors",
+    )
 
     # Category-specific ratings (optional)
     landlord_rating: Optional[int] = Field(
@@ -43,9 +48,12 @@ class Review(SQLModel, table=True):
         default=None, ge=0, le=100, description="Quietness rating, 0 to 100"
     )
 
-    # Only published reviews are shown to visitors
+    # Only published reviews are shown to visitors. A new review is published at
+    # once; "pending" and "rejected" are for checking reviews, which is not built yet.
     status: str = Field(
-        default="pending", max_length=20, description="pending, published or rejected"
+        default="published",
+        max_length=20,
+        description="pending, published or rejected",
     )
 
     # Metadata
