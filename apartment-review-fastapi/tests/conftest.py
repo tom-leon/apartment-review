@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
-import auth
+from controllers import auth
 import main
 from schemas import GoogleCredential
 

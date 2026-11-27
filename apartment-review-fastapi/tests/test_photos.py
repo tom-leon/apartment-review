@@ -2,7 +2,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from photos import street_view_photo_url
+from controllers.photos import street_view_photo_url
 
 
 def test_photo_url_asks_google_street_view_for_the_address():

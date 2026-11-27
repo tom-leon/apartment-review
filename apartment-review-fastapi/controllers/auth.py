@@ -1,7 +1,8 @@
 import logging
 from typing import Annotated, Optional
+from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
@@ -10,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from config import google_client_id
+from database import db_dependency
 from models import User
 from schemas import GoogleCredential
 
@@ -64,4 +66,15 @@ def find_or_create_user(db: Session, claims: dict) -> User:
         db.add(user)
         db.commit()
         db.refresh(user)
+    return user
+
+
+def current_user(request: Request, db: db_dependency) -> User:
+    """The signed-in user, from the session cookie; 401 when there is none."""
+    user_uid = request.session.get("user_uid")
+    user = db.get(User, UUID(user_uid)) if user_uid else None
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in first"
+        )
     return user

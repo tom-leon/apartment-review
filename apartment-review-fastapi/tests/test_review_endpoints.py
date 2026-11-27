@@ -1,28 +1,11 @@
 from datetime import datetime
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
-import example_endpoints
 from models import Apartment, Review, User
+from test_auth import sign_in
 
-
-@pytest.fixture
-def review_client(testing_session):
-    """A client for the drafted review routes, which main.py does not load yet."""
-    app = FastAPI()
-    app.include_router(example_endpoints.router)
-
-    def override_get_db():
-        db = testing_session()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[example_endpoints.get_db] = override_get_db
-    return TestClient(app)
+NO_SUCH_UID = "00000000-0000-0000-0000-000000000000"
 
 
 def add_user(db, name, google_sub):
@@ -43,9 +26,28 @@ def other_tenant(db):
     return add_user(db, "Mia", "google-2")
 
 
+def signed_in(client, google_accounts, user):
+    """The client, signed in as `user`."""
+    sign_in(
+        client,
+        google_accounts,
+        {"sub": user.google_sub, "email": user.email, "name": user.name},
+    )
+    return client
+
+
 @pytest.fixture
-def review(db, tenant):
-    """A published review written by `tenant`."""
+def as_tenant(client, google_accounts, tenant):
+    return signed_in(client, google_accounts, tenant)
+
+
+@pytest.fixture
+def as_other_tenant(client, google_accounts, other_tenant):
+    return signed_in(client, google_accounts, other_tenant)
+
+
+@pytest.fixture
+def apartment(db):
     apartment = Apartment(
         city="Sydney",
         country="Australia",
@@ -54,9 +56,25 @@ def review(db, tenant):
     )
     db.add(apartment)
     db.commit()
-    review = Review(
-        apartment_uid=apartment.uid,
-        user_uid=tenant.uid,
+    db.refresh(apartment)
+    return apartment
+
+
+def add_review(db, apartment, user, **fields):
+    review = Review(apartment_uid=apartment.uid, user_uid=user.uid, **fields)
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return review
+
+
+@pytest.fixture
+def review(db, apartment, tenant):
+    """A published review written by `tenant`."""
+    return add_review(
+        db,
+        apartment,
+        tenant,
         content="Quiet street, slow repairs.",
         landlord_rating=40,
         location_rating=80,
@@ -66,23 +84,129 @@ def review(db, tenant):
         created_at=datetime(2026, 1, 1),
         updated_at=datetime(2026, 1, 1),
     )
-    db.add(review)
-    db.commit()
-    db.refresh(review)
-    return review
 
 
-def edit(review_client, review, user, body):
-    return review_client.put(
-        f"/reviews/{review.uid}", params={"user_uid": str(user.uid)}, json=body
+def post_review(client, apartment_uid, **fields):
+    return client.post("/reviews", json={"apartment_uid": str(apartment_uid), **fields})
+
+
+def test_signed_in_tenant_can_post_a_review(as_tenant, apartment, tenant, db):
+    response = post_review(
+        as_tenant,
+        apartment.uid,
+        content="Cold in winter, lovely neighbours.",
+        landlord_rating=55,
+        location_rating=90,
+        condition_rating=35,
+        quietness_rating=70,
     )
 
+    assert response.status_code == 201
+    review = db.query(Review).one()
+    assert review.user_uid == tenant.uid
+    assert review.apartment_uid == apartment.uid
+    assert review.content == "Cold in winter, lovely neighbours."
+    assert review.landlord_rating == 55
+    assert review.quietness_rating == 70
+    body = response.json()
+    assert body["uid"] == str(review.uid)
+    assert body["content"] == "Cold in winter, lovely neighbours."
 
-def test_tenant_can_edit_their_own_review(review_client, review, tenant, db):
+
+def test_a_new_review_waits_to_be_checked(as_tenant, apartment):
+    response = post_review(as_tenant, apartment.uid, content="Fine.")
+
+    assert response.json()["status"] == "pending"
+
+
+def test_a_review_response_does_not_say_who_wrote_it(as_tenant, apartment):
+    response = post_review(as_tenant, apartment.uid, content="Fine.")
+
+    assert "user_uid" not in response.json()
+
+
+def test_posting_a_review_needs_sign_in(client, apartment, db):
+    response = post_review(client, apartment.uid, content="Fine.")
+
+    assert response.status_code == 401
+    assert db.query(Review).count() == 0
+
+
+def test_posting_a_review_for_an_unknown_apartment_returns_404(as_tenant, db):
+    response = post_review(as_tenant, NO_SUCH_UID, content="Fine.")
+
+    assert response.status_code == 404
+    assert db.query(Review).count() == 0
+
+
+def test_tenant_cannot_review_the_same_apartment_twice(as_tenant, review, db):
+    response = post_review(as_tenant, review.apartment_uid, content="Again.")
+
+    assert response.status_code == 409
+    assert db.query(Review).count() == 1
+
+
+def test_posting_rejects_a_rating_above_100(as_tenant, apartment, db):
+    response = post_review(as_tenant, apartment.uid, landlord_rating=101)
+
+    assert response.status_code == 422
+    assert db.query(Review).count() == 0
+
+
+def test_visitor_reads_the_published_reviews_newest_first(
+    client, apartment, review, other_tenant, db
+):
+    add_review(
+        db,
+        apartment,
+        other_tenant,
+        content="New paint, same mould.",
+        status="published",
+        created_at=datetime(2026, 2, 1),
+    )
+
+    response = client.get(f"/apartments/{apartment.uid}/reviews")
+
+    assert response.status_code == 200
+    assert [each["content"] for each in response.json()] == [
+        "New paint, same mould.",
+        "Quiet street, slow repairs.",
+    ]
+    assert response.json()[1]["landlord_rating"] == 40
+
+
+def test_visitor_does_not_see_a_review_that_is_not_published(
+    client, apartment, review, other_tenant, db
+):
+    add_review(db, apartment, other_tenant, content="Not checked yet.")
+
+    response = client.get(f"/apartments/{apartment.uid}/reviews")
+
+    assert [each["content"] for each in response.json()] == [
+        "Quiet street, slow repairs."
+    ]
+
+
+def test_reviews_a_visitor_reads_do_not_say_who_wrote_them(client, review):
+    response = client.get(f"/apartments/{review.apartment_uid}/reviews")
+
+    assert "user_uid" not in response.json()[0]
+
+
+def test_reading_reviews_of_an_unknown_apartment_returns_404(client):
+    response = client.get(f"/apartments/{NO_SUCH_UID}/reviews")
+
+    assert response.status_code == 404
+
+
+def edit(client, review, body):
+    return client.put(f"/reviews/{review.uid}", json=body)
+
+
+def test_tenant_can_edit_their_own_review(as_tenant, review, db):
     response = edit(
-        review_client,
+        as_tenant,
         review,
-        tenant,
         {
             "content": "Repairs got faster after the new agent took over.",
             "landlord_rating": 70,
@@ -104,8 +228,8 @@ def test_tenant_can_edit_their_own_review(review_client, review, tenant, db):
     assert review.landlord_rating == 70
 
 
-def test_a_rating_left_out_of_an_edit_is_cleared(review_client, review, tenant, db):
-    response = edit(review_client, review, tenant, {"content": "Only words now."})
+def test_a_rating_left_out_of_an_edit_is_cleared(as_tenant, review, db):
+    response = edit(as_tenant, review, {"content": "Only words now."})
 
     assert response.status_code == 200
     db.refresh(review)
@@ -114,10 +238,8 @@ def test_a_rating_left_out_of_an_edit_is_cleared(review_client, review, tenant, 
     assert review.quietness_rating is None
 
 
-def test_edit_rejects_a_rating_above_100(review_client, review, tenant, db):
-    response = edit(
-        review_client, review, tenant, {"content": "Great.", "landlord_rating": 101}
-    )
+def test_edit_rejects_a_rating_above_100(as_tenant, review, db):
+    response = edit(as_tenant, review, {"content": "Great.", "landlord_rating": 101})
 
     assert response.status_code == 422
     db.refresh(review)
@@ -125,25 +247,23 @@ def test_edit_rejects_a_rating_above_100(review_client, review, tenant, db):
     assert review.landlord_rating == 40
 
 
-def test_an_edited_review_goes_back_to_pending(review_client, review, tenant, db):
-    edit(review_client, review, tenant, {"content": "Rewritten after publishing."})
+def test_an_edited_review_goes_back_to_pending(as_tenant, review, db):
+    edit(as_tenant, review, {"content": "Rewritten after publishing."})
 
     db.refresh(review)
     assert review.status == "pending"
 
 
-def test_an_edit_records_when_the_review_changed(review_client, review, tenant, db):
-    edit(review_client, review, tenant, {"content": "Rewritten after publishing."})
+def test_an_edit_records_when_the_review_changed(as_tenant, review, db):
+    edit(as_tenant, review, {"content": "Rewritten after publishing."})
 
     db.refresh(review)
     assert review.updated_at > datetime(2026, 1, 1)
     assert review.created_at == datetime(2026, 1, 1)
 
 
-def test_tenant_cannot_edit_someone_elses_review(
-    review_client, review, other_tenant, db
-):
-    response = edit(review_client, review, other_tenant, {"content": "Hijacked."})
+def test_tenant_cannot_edit_someone_elses_review(as_other_tenant, review, db):
+    response = edit(as_other_tenant, review, {"content": "Hijacked."})
 
     assert response.status_code == 403
     db.refresh(review)
@@ -151,40 +271,44 @@ def test_tenant_cannot_edit_someone_elses_review(
     assert review.status == "published"
 
 
-def test_editing_an_unknown_review_returns_404(review_client, tenant):
-    response = review_client.put(
-        "/reviews/00000000-0000-0000-0000-000000000000",
-        params={"user_uid": str(tenant.uid)},
-        json={"content": "Nothing to edit."},
+def test_editing_an_unknown_review_returns_404(as_tenant):
+    response = as_tenant.put(
+        f"/reviews/{NO_SUCH_UID}", json={"content": "Nothing to edit."}
     )
 
     assert response.status_code == 404
 
 
-def test_tenant_can_delete_their_own_review(review_client, review, tenant, db):
-    response = review_client.delete(
-        f"/reviews/{review.uid}", params={"user_uid": str(tenant.uid)}
-    )
+def test_tenant_can_delete_their_own_review(as_tenant, review, db):
+    response = as_tenant.delete(f"/reviews/{review.uid}")
 
     assert response.status_code == 204
     assert db.query(Review).count() == 0
 
 
-def test_tenant_cannot_delete_someone_elses_review(
-    review_client, review, other_tenant, db
-):
-    response = review_client.delete(
-        f"/reviews/{review.uid}", params={"user_uid": str(other_tenant.uid)}
-    )
+def test_tenant_cannot_delete_someone_elses_review(as_other_tenant, review, db):
+    response = as_other_tenant.delete(f"/reviews/{review.uid}")
 
     assert response.status_code == 403
     assert db.query(Review).count() == 1
 
 
-def test_deleting_an_unknown_review_returns_404(review_client, tenant):
-    response = review_client.delete(
-        "/reviews/00000000-0000-0000-0000-000000000000",
-        params={"user_uid": str(tenant.uid)},
-    )
+def test_deleting_an_unknown_review_returns_404(as_tenant):
+    response = as_tenant.delete(f"/reviews/{NO_SUCH_UID}")
 
     assert response.status_code == 404
+
+
+def test_editing_a_review_needs_sign_in(client, review, db):
+    response = edit(client, review, {"content": "Hijacked."})
+
+    assert response.status_code == 401
+    db.refresh(review)
+    assert review.content == "Quiet street, slow repairs."
+
+
+def test_deleting_a_review_needs_sign_in(client, review, db):
+    response = client.delete(f"/reviews/{review.uid}")
+
+    assert response.status_code == 401
+    assert db.query(Review).count() == 1

@@ -121,7 +121,7 @@ print(f"Average rating: {avg_rating:.2f}")
 
 ## API Integration
 
-See `example_endpoints.py` for complete FastAPI endpoint examples.
+See `routers/` for the live FastAPI endpoints.
 
 ### Typical Workflow
 

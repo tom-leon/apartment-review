@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import main
+from routers import apartments
 from models import Apartment, Review, User
 
 _reviewer_number = count(1)
@@ -18,7 +19,7 @@ def maps_key(client):
     """No Google Maps key unless a test sets one, whatever the machine's environment."""
 
     def use(api_key):
-        main.app.dependency_overrides[main.get_maps_api_key] = lambda: api_key
+        main.app.dependency_overrides[apartments.get_maps_api_key] = lambda: api_key
 
     use(None)
     return use

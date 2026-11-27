@@ -1,4 +1,4 @@
-import auth
+from controllers import auth
 import main
 from models import User
 

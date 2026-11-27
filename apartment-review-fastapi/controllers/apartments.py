@@ -1,12 +1,10 @@
-from datetime import datetime
-from enum import Enum
-from returns.result import Failure, Result, Success, safe
+from returns.result import safe
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from models import Apartment, Review
-from photos import street_view_photo_url
-from schemas import OSMAddressData, RecentApartmentResponse, ReviewUpdate
+from controllers.photos import street_view_photo_url
+from schemas import OSMAddressData, RecentApartmentResponse
 from typing import Optional, Tuple
 from uuid import UUID
 
@@ -85,79 +83,6 @@ def get_or_create_apartment(
 def get_apartment_by_id(db: Session, apartment_uid: UUID) -> Optional[Apartment]:
     """Get an apartment by its UID"""
     return db.query(Apartment).filter(Apartment.uid == apartment_uid).first()
-
-
-def get_reviews_for_apartment(
-    db: Session, apartment_uid: UUID, limit: int = 100
-) -> list[Review]:
-    """Get all reviews for a specific apartment"""
-    return (
-        db.query(Review)
-        .filter(Review.apartment_uid == apartment_uid)
-        .order_by(Review.created_at.desc())
-        .limit(limit)
-        .all()
-    )
-
-
-def get_user_review_for_apartment(
-    db: Session, apartment_uid: UUID, user_uid: UUID
-) -> Optional[Review]:
-    """Check if a user has already reviewed a specific apartment"""
-    return (
-        db.query(Review)
-        .filter(Review.apartment_uid == apartment_uid, Review.user_uid == user_uid)
-        .first()
-    )
-
-
-class ReviewError(Enum):
-    """Why a review could not be changed"""
-
-    NOT_FOUND = "not_found"
-    NOT_OWNER = "not_owner"
-
-
-def get_own_review(
-    db: Session, review_uid: UUID, user_uid: UUID
-) -> Result[Review, ReviewError]:
-    """Get a review, but only for the user who wrote it"""
-    review = db.query(Review).filter(Review.uid == review_uid).first()
-    if review is None:
-        return Failure(ReviewError.NOT_FOUND)
-    if review.user_uid != user_uid:
-        return Failure(ReviewError.NOT_OWNER)
-    return Success(review)
-
-
-def update_own_review(
-    db: Session, review_uid: UUID, user_uid: UUID, changes: ReviewUpdate
-) -> Result[Review, ReviewError]:
-    """Replace the text and ratings of a review; anything left out is cleared"""
-
-    def save(review: Review) -> Review:
-        for field, value in changes.model_dump().items():
-            setattr(review, field, value)
-        # An edited review has to be checked again before visitors see it
-        review.status = "pending"
-        review.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(review)
-        return review
-
-    return get_own_review(db, review_uid, user_uid).map(save)
-
-
-def delete_own_review(
-    db: Session, review_uid: UUID, user_uid: UUID
-) -> Result[None, ReviewError]:
-    """Delete a review for good, for the user who wrote it"""
-
-    def remove(review: Review) -> None:
-        db.delete(review)
-        db.commit()
-
-    return get_own_review(db, review_uid, user_uid).map(remove)
 
 
 def calculate_apartment_average_rating(

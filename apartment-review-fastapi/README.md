@@ -71,8 +71,8 @@ deploy it — the Pulumi stack points DigitalOcean at this folder of `tom-leon/a
 
 ### Known gaps before this is safe to point real users at
 
-- **Nothing requires sign-in yet.** `POST /apartment` is open to the internet; Google sign-in
-  exists (`/auth/...`) but no endpoint checks for a signed-in user.
+- **Creating an apartment needs no sign-in.** `POST /apartment` and `POST /apartments/from-osm`
+  are open to the internet. Posting, editing and deleting a review do need a signed-in user.
 - **No migrations.** `main.py` calls `SQLModel.metadata.create_all(engine)` on startup, which
   creates missing tables but never alters existing ones. Add Alembic before the first schema
   change against production data.

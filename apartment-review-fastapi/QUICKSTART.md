@@ -2,7 +2,7 @@
 
 ## What Was Created
 
-### 1. Enhanced Models (`models.py`)
+### 1. Enhanced Models (`models/`, one file per table)
 
 - **User**: Added `created_at` and `updated_at` timestamps
 - **Apartment**: Complete OSM integration with:
@@ -22,7 +22,7 @@
 - `ReviewCreate` & `ReviewResponse`: For review operations
 - `UserResponse`: For user data
 
-### 3. Utility Functions (`utils.py`)
+### 3. Utility Functions (`controllers/apartments.py`, `controllers/reviews.py`)
 
 - `get_or_create_apartment()`: Smart apartment creation with duplicate handling
 - `get_apartment_by_id()`: Fetch apartment by UUID
@@ -30,14 +30,9 @@
 - `get_user_review_for_apartment()`: Check if user already reviewed
 - `calculate_apartment_average_rating()`: Calculate average rating
 
-### 4. Example Endpoints (`example_endpoints.py`)
+### 4. Endpoints (`routers/`)
 
-Complete FastAPI endpoint examples showing:
-
-- Creating apartments from OSM data
-- Creating reviews with validation
-- Querying apartments and reviews
-- Proper error handling
+The live routes: apartments, auth and reviews, one file each, plugged into `main.py`.
 
 ## How to Use
 
@@ -108,20 +103,7 @@ db.close()
 
 You can either:
 
-**Option A: Copy endpoints to main.py**
-
-```python
-# In main.py, add the endpoints from example_endpoints.py
-```
-
-**Option B: Use as a router**
-
-```python
-# In main.py
-from example_endpoints import router as apartment_router
-
-app.include_router(apartment_router, prefix="/api/v1", tags=["apartments"])
-```
+Routes are already included in `main.py` through `app.include_router(...)`, one router per file in `routers/`.
 
 ## Frontend Integration
 

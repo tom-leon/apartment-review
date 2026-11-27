@@ -76,20 +76,6 @@ class ApartmentResponse(BaseModel):
         from_attributes = True
 
 
-class ReviewCreate(BaseModel):
-    """Schema for creating a review"""
-
-    apartment_uid: UUID
-    title: Optional[str] = None
-    content: Optional[str] = None
-
-    landlord_rating: Optional[int] = Field(default=None, ge=1, le=10)
-    location_rating: Optional[int] = Field(default=None, ge=1, le=10)
-    condition_rating: Optional[int] = Field(default=None, ge=1, le=10)
-    value_rating: Optional[int] = Field(default=None, ge=1, le=10)
-    quietness_rating: Optional[int] = Field(default=None, ge=1, le=10)
-
-
 class ReviewUpdate(BaseModel):
     """Schema for replacing the text and ratings of a review"""
 
@@ -101,20 +87,26 @@ class ReviewUpdate(BaseModel):
     quietness_rating: Optional[int] = Field(default=None, ge=0, le=100)
 
 
+class ReviewCreate(ReviewUpdate):
+    """Schema for creating a review: its text and ratings, and which apartment"""
+
+    apartment_uid: UUID
+
+
 class ReviewResponse(BaseModel):
-    """Schema for review response"""
+    """Schema for review response; it never says who wrote the review"""
 
     uid: UUID
     apartment_uid: UUID
-    user_uid: UUID
 
-    title: Optional[str]
     content: Optional[str]
 
     landlord_rating: Optional[int]
     location_rating: Optional[int]
     condition_rating: Optional[int]
     quietness_rating: Optional[int]
+
+    status: str
 
     created_at: datetime
     updated_at: datetime

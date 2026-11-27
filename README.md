@@ -9,7 +9,7 @@ Rate the landlord, location, condition and noise of a place you've rented, so th
 Early. Both halves exist and are tested. The home page reads from the API; posting a review is not wired up yet.
 
 - **Frontend:** home page with "Recently reviewed" cards (street photo, score out of 100, newest review) and the "Review an apartment" dialog: address search via OpenStreetMap, optional unit number, four 0–100 ratings, free text.
-- **Backend:** `POST /apartment`, `GET /apartments/recent` (what the cards show) and a `GET /` health check over Postgres.
+- **Backend:** `GET /apartments/recent` (what the cards show), `POST /apartments/from-osm`, posting, reading, editing and deleting reviews (`/reviews`, `/apartments/{uid}/reviews`), Google sign-in (`/auth/...`) and a `GET /` health check over Postgres.
 - **CI:** every push runs lint, tests and a Docker build for both halves (GitHub Actions).
 - **Next:** deploy, then public apartment pages, Google sign-in, posting, and AI screening of every review for spam, abuse, defamation and leaked personal details before it goes live.
 
@@ -27,7 +27,7 @@ The full order and the reasoning behind each stage are in [roadmap.md](roadmap.m
 
 ```
 apartment-review-vue/        Vue app (src/, docker-compose.yml for the whole local stack)
-apartment-review-fastapi/    FastAPI app (main.py, models.py, schemas.py, tests/)
+apartment-review-fastapi/    FastAPI app (main.py, models/, routers/, controllers/, schemas.py, tests/)
 infra/                       Pulumi program that defines the three production services
 ```
 
