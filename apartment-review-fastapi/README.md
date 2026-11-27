@@ -17,7 +17,7 @@ folder's `DOCKER_GUIDE.md` for the local port mapping (the backend lands on **lo
 8000 — the guide documents why).
 
 Locally the app reads `DATABASE_URL` from the environment, falling back to
-`postgresql://tom:123@localhost:5432/apartment_review` (`database.py`) if it isn't set.
+`postgresql+psycopg://tom:123@localhost:5432/apartment_review` (`config.py`) if it isn't set.
 
 `CORS_ORIGINS` (comma-separated browser origins allowed to call the API) works the same way,
 defaulting to the Vite dev server `http://localhost:5173` and the Docker-mapped
@@ -27,6 +27,19 @@ defaulting to the Vite dev server `http://localhost:5173` and the Docker-mapped
 then returns a Google Street View address in `photo_url` for each apartment. Without it
 `photo_url` is `null` and the home page shows a placeholder. The key is readable in those
 addresses, so limit it in the Google Cloud console to this site and to the Street View Static API.
+
+`GOOGLE_CLIENT_ID` turns on Google sign-in: the client ID of the Google OAuth web client that the
+frontend's "Sign in with Google" button uses. `POST /auth/google` takes the button's ID token as
+`{"credential": ...}`, creates the user on their first sign-in and starts a session (an HttpOnly
+cookie); `GET /auth/me` returns the signed-in user; `POST /auth/logout` ends the session. Unset =
+`POST /auth/google` answers 503.
+
+`SESSION_SECRET` signs the session cookie. In production set it to one long random string; unset,
+the API makes a new one each start, so logins stop surviving a restart but cookies can never be
+forged.
+
+`SESSION_HTTPS_ONLY=true` marks the session cookie `Secure` (sent over HTTPS only). Set it in
+production; leave it unset for `http://localhost`.
 
 ## Production stack
 
@@ -58,7 +71,8 @@ deploy it — the Pulumi stack points DigitalOcean at this folder of `tom-leon/a
 
 ### Known gaps before this is safe to point real users at
 
-- **No auth on any endpoint.** `POST /apartment` is open to the internet.
+- **Nothing requires sign-in yet.** `POST /apartment` is open to the internet; Google sign-in
+  exists (`/auth/...`) but no endpoint checks for a signed-in user.
 - **No migrations.** `main.py` calls `SQLModel.metadata.create_all(engine)` on startup, which
   creates missing tables but never alters existing ones. Add Alembic before the first schema
   change against production data.

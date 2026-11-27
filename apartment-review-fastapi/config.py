@@ -1,4 +1,5 @@
 import os
+import secrets
 
 _DEFAULT_DATABASE_URL = "postgresql+psycopg://tom:123@localhost:5432/apartment_review"
 
@@ -24,3 +25,15 @@ cors_origins = [
 # <img> addresses that every visitor can read, so in the Google Cloud console limit
 # it to this site's address and to the Street View Static API. Unset = no photos.
 google_maps_api_key = os.getenv("GOOGLE_MAPS_API_KEY") or None
+
+# Client ID of the Google OAuth web client the frontend's "Sign in with Google"
+# button uses; the API only accepts ID tokens issued for it. Unset = sign-in is off.
+google_client_id = os.getenv("GOOGLE_CLIENT_ID") or None
+
+# Signs the session cookie. Unset = a new random secret each start, so a forgotten
+# secret can never make cookies forgeable; logins just stop surviving a restart.
+session_secret = os.getenv("SESSION_SECRET") or secrets.token_hex(32)
+
+# Secure flag on the session cookie, so browsers only send it over HTTPS. Production
+# sets it to "true"; leave it unset for http://localhost.
+session_https_only = os.getenv("SESSION_HTTPS_ONLY", "false").lower() == "true"

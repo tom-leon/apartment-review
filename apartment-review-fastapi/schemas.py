@@ -123,6 +123,12 @@ class ReviewResponse(BaseModel):
         from_attributes = True
 
 
+class GoogleCredential(BaseModel):
+    """Schema for signing in: the ID token Google's sign-in button hands the frontend"""
+
+    credential: str
+
+
 class UserResponse(BaseModel):
     """Schema for user response"""
 
