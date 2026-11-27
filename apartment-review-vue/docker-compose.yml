@@ -28,6 +28,7 @@ services:
       - "8100:8000"
     environment:
       DATABASE_URL: postgresql://tom:123@db:5432/apartment_review
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     depends_on:
       db:
         condition: service_healthy

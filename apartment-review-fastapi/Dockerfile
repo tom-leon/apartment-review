@@ -13,9 +13,9 @@ RUN apt-get update && apt-get install -y \
 COPY pyproject.toml .
 COPY uv.lock .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir uv && \
-    uv pip install --system -e .
+# Install the pinned versions from uv.lock into the image's Python, same as the tests use
+COPY --from=ghcr.io/astral-sh/uv:0.9.16 /uv /bin/uv
+RUN UV_PROJECT_ENVIRONMENT=/usr/local uv sync --locked --no-dev --no-install-project
 
 # Copy application code
 COPY . .
