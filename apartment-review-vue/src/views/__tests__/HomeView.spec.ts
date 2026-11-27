@@ -3,6 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
 import HomeView from "../HomeView.vue";
+import CreateReviewModal from "@/components/CreateReviewModal.vue";
 import type { RecentApartment } from "@/stores/apartment";
 
 function reviewed(uid: string, street: string): RecentApartment {
@@ -78,5 +79,18 @@ describe("HomeView", () => {
 
     expect(home.find(".p-message-error").text()).toContain("could not be loaded");
     expect(home.find("h2").exists()).toBe(false);
+  });
+
+  it("thanks the reviewer once their review is posted", async () => {
+    apiAnswers(200, []);
+    const home = await mountHome();
+    expect(home.find(".p-message-success").exists()).toBe(false);
+
+    await home.findComponent(CreateReviewModal).vm.$emit("submit");
+    await flushPromises();
+
+    expect(home.find(".p-message-success").text()).toContain(
+      "Thanks. Your review goes live once we’ve checked it.",
+    );
   });
 });

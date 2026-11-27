@@ -22,6 +22,13 @@ environments). The home page's "Recently reviewed" cards call `GET /apartments/r
 the backend has. Still missing before real users: the store's older functions call
 `GET`/`POST /api/apartments`, and the backend has no such routes yet.
 
+**Google sign-in:** `VITE_GOOGLE_CLIENT_ID` is the client ID of the Google OAuth web client (not a
+secret; `.env.development` holds the local one). `src/stores/auth.ts` calls the API's `/auth/me`,
+`/auth/google` and `/auth/logout` with the login cookie; the header shows Google's button or
+"Hi <first name>" + Sign out, and the review modal asks for a sign-in on "Post review". The
+client's authorised JavaScript origins must include the address the app is opened from
+(`http://localhost:5173` locally; add the production address when it exists).
+
 ## Local stack (Docker Compose)
 
 `docker-compose.yml` in this folder runs all three local services — Postgres, the FastAPI

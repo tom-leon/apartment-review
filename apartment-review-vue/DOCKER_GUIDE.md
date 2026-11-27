@@ -10,7 +10,7 @@ apartment-review/
 │   ├── Dockerfile
 │   ├── .dockerignore
 │   ├── main.py
-│   ├── models.py
+│   ├── models/  routers/  controllers/
 │   ├── database.py
 │   ├── pyproject.toml
 │   └── uv.lock

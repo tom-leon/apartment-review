@@ -13,6 +13,7 @@
           id="address"
           v-model="address"
           :suggestions="filteredAddresses"
+          optionLabel="display_name"
           @complete="searchAddress"
           placeholder="Start typing a street address"
           dropdown
@@ -64,11 +65,19 @@
           placeholder="What should the next tenant know?"
         />
       </div>
+
+      <div v-if="askedToSignIn && !user" class="field">
+        <Message severity="info">
+          Sign in to post. Your name is never shown with your review.
+        </Message>
+        <GoogleSignIn />
+      </div>
+      <Message v-if="error" severity="error">{{ error }}</Message>
     </div>
 
     <template #footer>
       <Button label="Cancel" severity="secondary" @click="closeModal" />
-      <Button label="Post review" @click="submitReview" />
+      <Button label="Post review" :loading="posting" @click="submitReview" />
     </template>
   </Dialog>
 </template>
@@ -84,7 +93,10 @@ import Slider from "primevue/slider";
 import Button from "primevue/button";
 import Message from "primevue/message";
 import { useApartmentStore } from "@/stores/apartment";
+import { useAuthStore } from "@/stores/auth";
+import { postReview, type NewReview, type Place } from "@/stores/review";
 import { storeToRefs } from "pinia";
+import GoogleSignIn from "@/components/GoogleSignIn.vue";
 
 const props = defineProps<{
   visible: boolean;
@@ -92,24 +104,28 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "update:visible", value: boolean): void;
-  (
-    e: "submit",
-    data: { address: string; rating: number; reviewText: string }
-  ): void;
+  /** The review has been saved. */
+  (e: "submit", data: NewReview): void;
 }>();
 
 const apartmentStore = useApartmentStore();
 const { apartments } = storeToRefs(apartmentStore);
+const { user } = storeToRefs(useAuthStore());
 
 const isVisible = ref(props.visible);
-const address = ref("");
+// The picked search result, or plain text while the visitor is still typing.
+const address = ref<Place | string>("");
 const unitNumber = ref("");
 const landlordRating = ref(50);
 const locationRating = ref(50);
 const conditionRating = ref(50);
 const quietnessRating = ref(50);
 const reviewText = ref("");
-const filteredAddresses = ref<string[]>([]);
+const filteredAddresses = ref<Place[]>([]);
+const posting = ref(false);
+const error = ref("");
+// Set when "Post review" was pressed while signed out; the form keeps its values meanwhile.
+const askedToSignIn = ref(false);
 
 watch(
   () => props.visible,
@@ -127,9 +143,17 @@ function closeModal() {
   resetForm();
 }
 
-function submitReview() {
-  const data: any = {
-    address: address.value,
+async function submitReview() {
+  if (!user.value) {
+    askedToSignIn.value = true;
+    return;
+  }
+  if (typeof address.value === "string") {
+    error.value = "Pick the address from the list.";
+    return;
+  }
+  const data = {
+    place: address.value,
     landlordRating: landlordRating.value,
     locationRating: locationRating.value,
     conditionRating: conditionRating.value,
@@ -137,11 +161,17 @@ function submitReview() {
     reviewText: reviewText.value,
   };
 
-  // Only include unit number if provided
-  if (unitNumber.value.trim()) {
-    data.unitNumber = unitNumber.value.trim();
+  posting.value = true;
+  error.value = "";
+  try {
+    await postReview(data);
+  } catch (e) {
+    // The form stays open with what was typed, so the visitor can try again.
+    error.value = e instanceof Error ? e.message : "Your review could not be saved.";
+    return;
+  } finally {
+    posting.value = false;
   }
-
   emit("submit", data);
   closeModal();
 }
@@ -155,6 +185,8 @@ function resetForm() {
   quietnessRating.value = 50;
   reviewText.value = "";
   filteredAddresses.value = [];
+  askedToSignIn.value = false;
+  error.value = "";
 }
 
 async function searchAddress(event: { query: string }) {
@@ -182,16 +214,10 @@ async function searchAddress(event: { query: string }) {
 
     if (!response.ok) throw new Error("Failed to fetch addresses");
 
-    const data = await response.json();
-    filteredAddresses.value = data.map((item: any) => item.display_name);
-
-    // If no results, allow manual entry
-    if (filteredAddresses.value.length === 0) {
-      filteredAddresses.value = [`No results found. Use: ${query}`];
-    }
+    filteredAddresses.value = await response.json();
   } catch (error) {
     console.error("Address search error:", error);
-    filteredAddresses.value = [`Error searching. Use: ${query}`];
+    filteredAddresses.value = [];
   }
 }
 </script>

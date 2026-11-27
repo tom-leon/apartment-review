@@ -140,9 +140,7 @@ fails loudly rather than quietly trying to reach a database that isn't there.
 
 **Minor:** `datetime.utcnow` is deprecated in Python 3.12+ (use
 `datetime.now(timezone.utc)`); the `version: "3.8"` key in `docker-compose.yml` is obsolete and
-ignored by modern Compose; and `utils.py` and `example_endpoints.py` contain working logic
-(including `get_or_create_apartment`) that `main.py` never imports, so the live API is only three
-endpoints.
+ignored by modern Compose; and `datetime.utcnow` defaults in `models/` will need changing before Python 3.12.
 
 ## Sources
 

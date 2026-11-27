@@ -11,6 +11,9 @@
       size="large"
       @click="showModal = true"
     />
+    <Message v-if="posted" severity="success">
+      Thanks. Your review goes live once we’ve checked it.
+    </Message>
     <Message v-if="error" severity="error">{{ error }}</Message>
     <section v-if="recentApartments.length" aria-labelledby="recent-heading">
       <h2 id="recent-heading">Recently reviewed</h2>
@@ -21,7 +24,7 @@
       </ul>
     </section>
 
-    <CreateReviewModal v-model:visible="showModal" @submit="handleSubmit" />
+    <CreateReviewModal v-model:visible="showModal" @submit="posted = true" />
   </main>
 </template>
 
@@ -41,19 +44,11 @@ const RECENT_CARDS = 4;
 const store = useApartmentStore();
 const { recentApartments, error } = storeToRefs(store);
 const showModal = ref(false);
+const posted = ref(false);
 
 onMounted(() => {
   store.fetchRecentApartments(RECENT_CARDS);
 });
-
-function handleSubmit(data: {
-  address: string;
-  rating: number;
-  reviewText: string;
-}) {
-  console.log("Review submitted:", data);
-  // TODO: Handle review submission
-}
 </script>
 
 <style scoped>
