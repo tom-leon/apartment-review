@@ -11,7 +11,9 @@ def sign_in(client, google_accounts, claims=TOM):
     return client.post("/auth/google", json={"credential": "tom-token"})
 
 
-def test_google_sign_in_creates_the_user_and_returns_it(client, db, google_accounts):
+def test_signing_in_with_google_the_first_time_makes_a_new_user(
+    client, db, google_accounts
+):
     response = sign_in(client, google_accounts)
 
     assert response.status_code == 200
@@ -24,13 +26,11 @@ def test_google_sign_in_creates_the_user_and_returns_it(client, db, google_accou
     assert "google_sub" not in body
 
 
-def test_google_sign_in_rejects_a_body_without_a_credential(client):
+def test_sign_in_fails_when_the_proof_from_google_is_missing(client):
     assert client.post("/auth/google", json={}).status_code == 422
 
 
-def test_google_sign_in_rejects_a_token_google_does_not_accept(
-    client, db, google_accounts
-):
+def test_sign_in_fails_when_google_says_the_proof_is_fake(client, db, google_accounts):
     response = client.post("/auth/google", json={"credential": "garbage"})
 
     assert response.status_code == 401
@@ -38,7 +38,7 @@ def test_google_sign_in_rejects_a_token_google_does_not_accept(
     assert "set-cookie" not in response.headers
 
 
-def test_google_sign_in_answers_503_when_no_client_id_is_configured(client):
+def test_sign_in_says_try_later_when_google_sign_in_is_not_set_up(client):
     # The real verifier runs here; with no client ID it must stop before asking Google.
     main.app.dependency_overrides[auth.get_google_client_id] = lambda: None
 
@@ -48,7 +48,7 @@ def test_google_sign_in_answers_503_when_no_client_id_is_configured(client):
     assert response.json() == {"detail": "Google sign-in is not configured"}
 
 
-def test_signing_in_again_with_the_same_google_account_reuses_the_user(
+def test_signing_in_again_with_the_same_google_account_does_not_make_a_second_user(
     client, db, google_accounts
 ):
     first = sign_in(client, google_accounts)
@@ -62,7 +62,7 @@ def test_signing_in_again_with_the_same_google_account_reuses_the_user(
     assert second.json()["name"] == "Tom Leon"
 
 
-def test_google_sign_in_uses_the_email_as_the_name_when_google_sends_none(
+def test_the_email_is_used_as_the_name_when_google_gives_no_name(
     client, google_accounts
 ):
     response = sign_in(
@@ -73,7 +73,7 @@ def test_google_sign_in_uses_the_email_as_the_name_when_google_sends_none(
     assert response.json()["name"] == "tom@example.com"
 
 
-def test_google_sign_in_answers_503_when_the_database_cannot_be_used(
+def test_sign_in_says_try_later_when_the_database_is_broken(
     client, db, google_accounts, caplog
 ):
     # No user table any more, so the query fails for real.
@@ -85,7 +85,7 @@ def test_google_sign_in_answers_503_when_the_database_cannot_be_used(
     assert "no such table" in caplog.text
 
 
-def test_google_sign_in_sets_a_session_cookie_only_the_browser_can_read(
+def test_the_sign_in_is_remembered_and_hidden_from_scripts_on_the_page(
     client, google_accounts
 ):
     response = sign_in(client, google_accounts)
@@ -99,7 +99,7 @@ def test_google_sign_in_sets_a_session_cookie_only_the_browser_can_read(
     assert "secure" not in flags
 
 
-def test_me_returns_the_signed_in_user(client, google_accounts):
+def test_the_app_can_tell_who_is_signed_in(client, google_accounts):
     signed_in = sign_in(client, google_accounts)
 
     response = client.get("/auth/me")
@@ -108,20 +108,18 @@ def test_me_returns_the_signed_in_user(client, google_accounts):
     assert response.json() == signed_in.json()
 
 
-def test_me_answers_401_when_nobody_is_signed_in(client):
+def test_the_app_says_so_when_nobody_is_signed_in(client):
     assert client.get("/auth/me").status_code == 401
 
 
-def test_me_answers_401_for_a_forged_session_cookie(client):
+def test_a_fake_sign_in_is_not_believed(client):
     # Not signed by the server, so Starlette treats it as no session at all.
     client.cookies.set("session", "garbage")
 
     assert client.get("/auth/me").status_code == 401
 
 
-def test_me_answers_401_when_the_user_was_deleted_after_signing_in(
-    client, db, google_accounts
-):
+def test_a_deleted_user_is_no_longer_signed_in(client, db, google_accounts):
     sign_in(client, google_accounts)
     db.delete(db.query(User).one())
     db.commit()
@@ -129,7 +127,7 @@ def test_me_answers_401_when_the_user_was_deleted_after_signing_in(
     assert client.get("/auth/me").status_code == 401
 
 
-def test_logout_ends_the_session(client, google_accounts):
+def test_after_signing_out_you_are_no_longer_signed_in(client, google_accounts):
     sign_in(client, google_accounts)
 
     response = client.post("/auth/logout")

@@ -85,7 +85,6 @@ Table changes are [Alembic](https://alembic.sqlalchemy.org) migrations in `migra
 - Applying them is automatic: the container's start command is `alembic upgrade head`, then the
   API ([Dockerfile](Dockerfile), and the same in Docker Compose). Every deploy therefore brings
   the database up to date first, and a migration that fails stops the new version from starting.
-- A database made before Alembic was added is taken over as it is by the first migration.
 
 ## Dependencies
 

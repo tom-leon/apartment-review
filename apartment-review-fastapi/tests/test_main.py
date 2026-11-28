@@ -1,7 +1,7 @@
 from models import Apartment
 
 
-def test_create_apartment_returns_response(client):
+def test_adding_an_apartment_gives_it_back(client):
     response = client.post(
         "/apartment",
         json={
@@ -20,7 +20,7 @@ def test_create_apartment_returns_response(client):
     assert "longitude" not in body
 
 
-def test_create_apartment_rejects_missing_city(client):
+def test_an_apartment_without_a_city_is_refused(client):
     response = client.post(
         "/apartment",
         json={
@@ -33,7 +33,7 @@ def test_create_apartment_rejects_missing_city(client):
     assert response.status_code == 422
 
 
-def test_cors_preflight_allows_the_local_frontend_origin(client):
+def test_the_local_website_is_allowed_to_talk_to_the_app(client):
     response = client.options(
         "/apartment",
         headers={
@@ -47,7 +47,7 @@ def test_cors_preflight_allows_the_local_frontend_origin(client):
     assert response.headers["access-control-allow-credentials"] == "true"
 
 
-def test_cors_preflight_rejects_an_unknown_origin(client):
+def test_an_unknown_website_is_not_allowed_to_talk_to_the_app(client):
     response = client.options(
         "/apartment",
         headers={

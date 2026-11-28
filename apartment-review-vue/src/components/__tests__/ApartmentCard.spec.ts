@@ -52,7 +52,7 @@ describe("ApartmentCard", () => {
     expect(card.find(".photo-placeholder").exists()).toBe(false);
   });
 
-  it("shows a placeholder, and no Google credit, when there is no photo", () => {
+  it("shows a stand-in picture, and no Google credit, when there is no photo", () => {
     const card = mountCard({ photo_url: null });
 
     expect(card.find("img").exists()).toBe(false);
@@ -60,7 +60,7 @@ describe("ApartmentCard", () => {
     expect(card.find(".photo-placeholder").exists()).toBe(true);
   });
 
-  it("swaps to the placeholder when the photo fails to load", async () => {
+  it("swaps to the stand-in picture when the photo fails to load", async () => {
     const card = mountCard();
 
     await card.find("img").trigger("error");

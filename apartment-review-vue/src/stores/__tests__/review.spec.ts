@@ -32,7 +32,7 @@ function apiAnswers(answers: Record<string, [number, unknown]>) {
   return requests;
 }
 
-describe("postReview", () => {
+describe("posting a review", () => {
   beforeEach(() => {
     vi.stubEnv("VITE_API_URL", "https://api.example.com");
   });
@@ -80,7 +80,7 @@ describe("postReview", () => {
     expect(JSON.parse(requests[1].init!.body as string).unit_number).toBeNull();
   });
 
-  it("sends the sign-in cookie with the review", async () => {
+  it("tells the server who is signed in when posting the review", async () => {
     const requests = apiAnswers({
       "/apartments/from-osm": [201, { uid: "a1" }],
       "/reviews": [201, { uid: "r1" }],

@@ -22,10 +22,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # A database from before Alembic already has these tables (the app used to
-    # create them itself when it started): leave it as it is.
-    if sa.inspect(op.get_bind()).has_table("review"):
-        return
     op.create_table(
         "apartment",
         sa.Column("uid", sa.Uuid(), nullable=False),

@@ -48,7 +48,7 @@ describe("HomeView", () => {
     vi.unstubAllEnvs();
   });
 
-  it("shows a card for each recently reviewed apartment, in the API's order", async () => {
+  it("shows a card for each recently reviewed apartment, in the order the server gives", async () => {
     const requested = apiAnswers(200, [
       reviewed("a1", "Brunswick Street"),
       reviewed("a2", "Glebe Point Road"),

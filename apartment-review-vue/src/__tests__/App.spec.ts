@@ -62,7 +62,7 @@ describe("App header", () => {
     expect(app.find("header").text()).not.toContain("Hi ");
   });
 
-  it("signing out tells the API and brings the Google button back", async () => {
+  it("signing out tells the server and brings the Google button back", async () => {
     const requests = apiAnswers({ status: 200, body: tom });
     const app = await mountApp();
 

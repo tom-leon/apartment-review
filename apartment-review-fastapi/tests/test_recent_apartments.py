@@ -241,7 +241,7 @@ def test_recent_gives_a_street_photo_address_when_a_maps_key_is_set(
     assert parse_qs(photo.query)["key"] == ["test-key"]
 
 
-def test_recent_answers_503_when_the_database_cannot_be_read(client, caplog):
+def test_recent_says_try_later_when_the_database_is_broken(client, caplog):
     # A real database with no tables in it, so the query fails for real.
     engine = create_engine(
         "sqlite:///:memory:",

@@ -120,7 +120,7 @@ def test_a_new_review_is_public_straight_away(as_tenant, apartment):
     assert [each["content"] for each in visible] == ["Fine."]
 
 
-def test_a_review_response_does_not_say_who_wrote_it(as_tenant, apartment):
+def test_a_posted_review_does_not_say_who_wrote_it(as_tenant, apartment):
     response = post_review(as_tenant, apartment.uid, content="Fine.")
 
     assert "user_uid" not in response.json()
@@ -155,7 +155,7 @@ def test_posting_a_review_needs_sign_in(client, apartment, db):
     assert db.query(Review).count() == 0
 
 
-def test_posting_a_review_for_an_unknown_apartment_returns_404(as_tenant, db):
+def test_a_review_for_an_apartment_that_does_not_exist_is_refused(as_tenant, db):
     response = post_review(as_tenant, NO_SUCH_UID, content="Fine.")
 
     assert response.status_code == 404
@@ -169,7 +169,7 @@ def test_tenant_cannot_review_the_same_apartment_twice(as_tenant, review, db):
     assert db.query(Review).count() == 1
 
 
-def test_posting_rejects_a_rating_above_100(as_tenant, apartment, db):
+def test_a_review_with_a_rating_above_100_is_refused(as_tenant, apartment, db):
     response = post_review(as_tenant, apartment.uid, landlord_rating=101)
 
     assert response.status_code == 422
@@ -216,7 +216,7 @@ def test_reviews_a_visitor_reads_do_not_say_who_wrote_them(client, review):
     assert "user_uid" not in response.json()[0]
 
 
-def test_reading_reviews_of_an_unknown_apartment_returns_404(client):
+def test_reading_reviews_of_an_apartment_that_does_not_exist_fails(client):
     response = client.get(f"/apartments/{NO_SUCH_UID}/reviews")
 
     assert response.status_code == 404
@@ -261,7 +261,7 @@ def test_a_rating_left_out_of_an_edit_is_cleared(as_tenant, review, db):
     assert review.quietness_rating is None
 
 
-def test_edit_rejects_a_rating_above_100(as_tenant, review, db):
+def test_an_edit_with_a_rating_above_100_is_refused(as_tenant, review, db):
     response = edit(as_tenant, review, {"content": "Great.", "landlord_rating": 101})
 
     assert response.status_code == 422
@@ -294,7 +294,7 @@ def test_tenant_cannot_edit_someone_elses_review(as_other_tenant, review, db):
     assert review.status == "published"
 
 
-def test_editing_an_unknown_review_returns_404(as_tenant):
+def test_editing_a_review_that_does_not_exist_fails(as_tenant):
     response = as_tenant.put(
         f"/reviews/{NO_SUCH_UID}", json={"content": "Nothing to edit."}
     )
@@ -316,7 +316,7 @@ def test_tenant_cannot_delete_someone_elses_review(as_other_tenant, review, db):
     assert db.query(Review).count() == 1
 
 
-def test_deleting_an_unknown_review_returns_404(as_tenant):
+def test_deleting_a_review_that_does_not_exist_fails(as_tenant):
     response = as_tenant.delete(f"/reviews/{NO_SUCH_UID}")
 
     assert response.status_code == 404

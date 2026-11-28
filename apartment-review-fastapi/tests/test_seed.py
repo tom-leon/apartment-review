@@ -12,7 +12,9 @@ def row_counts(db):
     )
 
 
-def test_seeding_gives_the_home_page_four_cards_with_a_review_to_quote(client, db):
+def test_the_sample_data_gives_the_home_page_four_cards_with_a_review_to_quote(
+    client, db
+):
     seed_database(db)
 
     apartments = client.get("/apartments/recent", params={"limit": 4}).json()
@@ -21,20 +23,20 @@ def test_seeding_gives_the_home_page_four_cards_with_a_review_to_quote(client, d
     assert all(apartment["latest_review_text"] for apartment in apartments)
 
 
-def test_seeding_leaves_one_review_waiting_to_be_checked(db):
+def test_the_sample_data_has_one_review_waiting_to_be_checked(db):
     seed_database(db)
 
     assert db.query(Review).filter(Review.status == "pending").count() == 1
 
 
-def test_seeding_reports_how_many_rows_it_added(db):
+def test_loading_the_sample_data_says_how_many_rows_it_added(db):
     seeded = seed_database(db).unwrap()
 
     assert (seeded.users, seeded.apartments, seeded.reviews) == row_counts(db)
     assert seeded.reviews > 0
 
 
-def test_seeding_twice_adds_nothing_the_second_time(db):
+def test_loading_the_sample_data_twice_adds_nothing_the_second_time(db):
     seed_database(db)
     after_first_run = row_counts(db)
 

@@ -25,7 +25,7 @@ describe("auth store", () => {
     vi.unstubAllEnvs();
   });
 
-  it("fetchMe loads the signed-in user, sending the cookie", async () => {
+  it("finds out who is signed in when the page opens", async () => {
     const requests = apiAnswers(200, tom);
     const auth = useAuthStore();
 
@@ -37,7 +37,7 @@ describe("auth store", () => {
     expect(auth.user).toEqual(tom);
   });
 
-  it("fetchMe leaves user null when nobody is signed in", async () => {
+  it("knows nobody is signed in when nobody is", async () => {
     apiAnswers(401, { detail: "Sign in first" });
     const auth = useAuthStore();
 
@@ -46,7 +46,7 @@ describe("auth store", () => {
     expect(auth.user).toBeNull();
   });
 
-  it("loginWithGoogle posts the credential and keeps the user it gets back", async () => {
+  it("signs in with the proof from Google and remembers the user", async () => {
     const requests = apiAnswers(200, tom);
     const auth = useAuthStore();
 
@@ -61,7 +61,7 @@ describe("auth store", () => {
     expect(auth.user).toEqual(tom);
   });
 
-  it("logout tells the API and forgets the user", async () => {
+  it("signing out tells the server and forgets the user", async () => {
     const auth = useAuthStore();
     auth.user = tom;
     const requests = apiAnswers(204, null);

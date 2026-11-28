@@ -7,7 +7,7 @@ describe("apartment store", () => {
     setActivePinia(createPinia());
   });
 
-  it("getApartmentById returns the apartment with that uid", () => {
+  it("finds an apartment the app already knows", () => {
     const store = useApartmentStore();
     store.apartments = [
       { uid: "a1", address: "1 Test St" },
@@ -17,32 +17,32 @@ describe("apartment store", () => {
     expect(store.getApartmentById("a2")).toEqual({ uid: "a2", address: "2 Test St" });
   });
 
-  it("getApartmentById returns undefined for an unknown uid", () => {
+  it("finds nothing for an apartment the app does not know", () => {
     const store = useApartmentStore();
 
     expect(store.getApartmentById("nope")).toBeUndefined();
   });
 });
 
-describe("apiUrl", () => {
+describe("the address of the server", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it("prefixes the path with VITE_API_URL", () => {
+  it("uses the server address from the settings when there is one", () => {
     vi.stubEnv("VITE_API_URL", "https://api.example.com");
 
     expect(apiUrl("/api/apartments")).toBe("https://api.example.com/api/apartments");
   });
 
-  it("keeps the path relative when VITE_API_URL is not set", () => {
+  it("uses this same site when no server address is set", () => {
     vi.stubEnv("VITE_API_URL", undefined);
 
     expect(apiUrl("/api/apartments")).toBe("/api/apartments");
   });
 });
 
-describe("fetchRecentApartments", () => {
+describe("loading the recently reviewed apartments", () => {
   const brunswick: RecentApartment = {
     uid: "a1",
     house_number: "12",
@@ -66,7 +66,7 @@ describe("fetchRecentApartments", () => {
     vi.unstubAllEnvs();
   });
 
-  it("loads the recently reviewed apartments from the API", async () => {
+  it("loads the recently reviewed apartments from the server", async () => {
     vi.stubEnv("VITE_API_URL", "https://api.example.com");
     const requested: string[] = [];
     vi.stubGlobal("fetch", async (url: string) => {
@@ -83,7 +83,7 @@ describe("fetchRecentApartments", () => {
     expect(store.loading).toBe(false);
   });
 
-  it("sets an error and keeps the list empty when the API is down", async () => {
+  it("sets an error and keeps the list empty when the server is down", async () => {
     vi.stubGlobal(
       "fetch",
       async () =>

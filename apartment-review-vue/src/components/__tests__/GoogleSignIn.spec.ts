@@ -38,7 +38,7 @@ describe("GoogleSignIn", () => {
     expect(google.parent).toBe(button.find(".google-button").element);
   });
 
-  it("signs in with the credential Google hands back", async () => {
+  it("signs in with the proof Google hands back", async () => {
     const google = googleScript();
     vi.stubGlobal("fetch", async (url: string) => {
       expect(url).toContain("/auth/google");
@@ -54,7 +54,7 @@ describe("GoogleSignIn", () => {
     expect(useAuthStore().user?.name).toBe("Tom Leon");
   });
 
-  it("says so when Google's script did not load", () => {
+  it("says so when the Google button could not load", () => {
     vi.stubGlobal("google", undefined);
 
     const button = mount(GoogleSignIn);
